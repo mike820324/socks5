@@ -3,6 +3,16 @@ which is highly inspired by [h11](https://github.com/njsmith/h11) and [hyper-h2]
 
 It's a "bring-your-own-IO" library.
 
+## Installation:
+
+Since we have not upload to pypi yet.
+
+```bash
+git clone https://github.com/mike820324/socks5
+cd socks5
+pip install .
+```
+
 ## LICENSE:
 MIT
 
