@@ -1,7 +1,9 @@
 from transitions import Machine
+from define import SOCKS_AUTH_TYPE
 from parser import SocksParser, ParserError
 from events import NeedMoreData, GreetingResponse, Response
 from events import GreetingRequest, Request
+from events import AuthRequest, AuthResponse
 
 
 class ProtocolError(Exception):
@@ -13,6 +15,8 @@ class ClientConnection(object):
         'init',
         'greeting_request',
         'greeting_response',
+        'auth_request',
+        'auth_response',
         'request',
         'response',
         'end'
@@ -39,6 +43,13 @@ class ClientConnection(object):
             if self.state == 'greeting_response':
                 current_event = SocksParser.parse_greeting_response(
                     self._buffer)
+                if current_event.auth_type == SOCKS_AUTH_TYPE["NO_AUTH"]:
+                    self.machine.set_state('request')
+                else:
+                    self.machine.set_state('auth_request')
+
+            elif self.state == 'auth_response':
+                current_event = SocksParser.parse_auth_response(self._buffer)
                 self.machine.set_state('request')
 
             elif self.state == 'response':
@@ -55,10 +66,13 @@ class ClientConnection(object):
         return current_event
 
     def send(self, event):
-        if self.state != "greeting_request" and self.state != "request":
+        if self.state != "greeting_request" and self.state != "request" and self.state != "auth_request":
             raise ProtocolError
 
         if self.state == "greeting_request" and not isinstance(event, GreetingRequest):
+            raise ProtocolError
+
+        if self.state == "auth_request" and not isinstance(event, AuthRequest):
             raise ProtocolError
 
         if self.state == "request" and not isinstance(event, Request):
@@ -66,6 +80,9 @@ class ClientConnection(object):
 
         if self.state == "greeting_request":
             self.machine.set_state("greeting_response")
+
+        if self.state == "auth_request":
+            self.machine.set_state("auth_response")
 
         if self.state == "request":
             self.machine.set_state("response")
@@ -78,6 +95,8 @@ class ServerConnection(object):
         'init',
         'greeting_request',
         'greeting_response',
+        'auth_request',
+        'auth_response',
         'request',
         'response',
         'end'
@@ -106,6 +125,11 @@ class ServerConnection(object):
                     self._buffer)
                 self.machine.set_state('greeting_response')
 
+            elif self.state == 'auth_request':
+                current_event = SocksParser.parse_auth_request(
+                    self._buffer)
+                self.machine.set_state('auth_response')
+
             elif self.state == 'request':
                 current_event = SocksParser.parse_request(self._buffer)
                 self.machine.set_state('response')
@@ -120,14 +144,23 @@ class ServerConnection(object):
         return current_event
 
     def send(self, event):
-        if self.state != "greeting_response" and self.state != "response":
+        if self.state != "greeting_response" and self.state != "response" and self.state != "auth_response":
             raise ProtocolError
 
         if self.state == "greeting_response" and not isinstance(event, GreetingResponse):
             raise ProtocolError
 
+        if self.state == "auth_response" and not isinstance(event, AuthResponse):
+            raise ProtocolError
+
         if self.state == "response" and not isinstance(event, Response):
             raise ProtocolError
+
+        if self.state == "greeting_response":
+            if event.auth_type == SOCKS_AUTH_TYPE["NO_AUTH"]:
+                self.machine.set_state("request")
+            else:
+                self.machine.set_state("auth_request")
 
         if self.state == "greeting_response":
             self.machine.set_state("request")

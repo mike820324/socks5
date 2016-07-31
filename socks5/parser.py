@@ -1,11 +1,13 @@
 import struct
 from define import SOCKS_ADDR_TYPE
 from events import GreetingRequest, GreetingResponse
+from events import AuthRequest, AuthResponse
 from events import Request, Response
 
 
 class ParserError(Exception):
     pass
+
 
 class SocksParser(object):
     # TODO: Input data validation
@@ -29,6 +31,27 @@ class SocksParser(object):
 
         return GreetingResponse(version, auth_type)
 
+    @staticmethod
+    def parse_auth_request(data):
+        try:
+            version, _len = struct.unpack('BB', data[:2])
+            username = struct.unpack('{}s'.format(_len), data[2:2+_len])
+            _data = data[2+_len:]
+            _len = struct.unpack('B', _data[0])
+            password = struct.unpack('{}s'.format(_len), _data[1:])
+
+            return AuthRequest(version, username, password)
+        except struct.error:
+            raise ParserError
+
+    @staticmethod
+    def parse_auth_response(data):
+        try:
+            version, status = struct.unpack('BB', data)
+        except struct.error:
+            raise ParserError
+
+        return AuthResponse(version, status)
 
     @staticmethod
     def parse_request(data):
@@ -52,7 +75,6 @@ class SocksParser(object):
 
         except struct.error:
             raise ParserError
-
 
         return Request(version, cmd, atyp, addr, port)
 

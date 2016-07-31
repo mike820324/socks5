@@ -10,7 +10,6 @@ class NeedMoreData(object):
 
 class GreetingRequest(object):
     def __init__(self, version, nmethod, methods):
-        print nmethod
         self.version = version
         self.nmethod = nmethod
         self.methods = methods
@@ -37,6 +36,37 @@ class GreetingResponse(object):
     def __str__(self):
         return "Socks Greeting Response: Ver. {0}, Auth Type : {1}".format(
             self.version, self.auth_type)
+
+
+class AuthRequest(object):
+    def __init__(self, version, username, password):
+        self.version = version
+        self.username = username
+        self.password = password
+
+    def get_raw_data(self):
+        _data = struct.pack(
+            "BB{0}s{1}s".format(len(self.username), len(self.password)),
+            self.version, self.username, self.password)
+        return _data
+
+    def __str__(self):
+        return "Socks Auth Request: Ver. {0}, username: {1}, password: {2}".format(
+            self.version, self.username, self.password)
+
+
+class AuthResponse(object):
+    def __init__(self, version, status):
+        self.version = version
+        self.status = status
+
+    def get_raw_data(self):
+        _data = struct.pack('BB', self.version, self.status)
+        return _data
+
+    def __str__(self):
+        return "Socks Auth Response: Ver. {0}, status: {1}".format(
+            self.version, self.status)
 
 
 class Request(object):
