@@ -1,6 +1,5 @@
-import struct
 import ipaddress
-from define import VERSION, ADDR_TYPE
+from define import ADDR_TYPE
 
 
 class NeedMoreData(object):
@@ -24,11 +23,6 @@ class GreetingRequest(object):
         self.nmethod = nmethod
         self.methods = methods
 
-    def get_raw_data(self):
-        _data_header = struct.pack('BB', self.version, self.nmethod)
-        _data_body = struct.pack('{}B'.format(self.nmethod), self.methods)
-        return _data_header + _data_body
-
     def __eq__(self, value):
         return self.event_type == value
 
@@ -46,10 +40,6 @@ class GreetingResponse(object):
     def __init__(self, version, auth_type):
         self.version = version
         self.auth_type = auth_type
-
-    def get_raw_data(self):
-        _data = struct.pack('BB', self.version, self.auth_type)
-        return _data
 
     def __eq__(self, value):
         return self.event_type == value
@@ -70,12 +60,6 @@ class AuthRequest(object):
         self.username = username
         self.password = password
 
-    def get_raw_data(self):
-        _data = struct.pack(
-            "BB{0}s{1}s".format(len(self.username), len(self.password)),
-            self.version, self.username, self.password)
-        return _data
-
     def __eq__(self, value):
         return self.event_type == value
 
@@ -93,10 +77,6 @@ class AuthResponse(object):
     def __init__(self, version, status):
         self.version = version
         self.status = status
-
-    def get_raw_data(self):
-        _data = struct.pack('BB', self.version, self.status)
-        return _data
 
     def __eq__(self, value):
         return self.event_type == value
@@ -118,22 +98,6 @@ class Request(object):
         self.atyp = atyp
         self.addr = addr
         self.port = port
-
-    def get_raw_data(self):
-        _data_header = struct.pack("!BBxB", self.version, self.cmd, self.atyp)
-
-        if self.atyp == ADDR_TYPE["IPV4"]:
-            _data_body = struct.pack("4sH", self.addr, self.port)
-
-        if self.atyp == ADDR_TYPE["IPV6"]:
-            _data_body = struct.pack("16sH", self.addr, self.port)
-
-        if self.atyp == ADDR_TYPE["DOMAINNAME"]:
-            _length = len(self.addr)
-            _data_body = struct.pack(
-                "B{}sH".format(_length), _length, self.addr, self.port)
-
-        return _data_header + _data_body
 
     def __eq__(self, value):
         return self.event_type == value
@@ -168,23 +132,6 @@ class Response(object):
         self.addr = addr
         self.port = port
 
-    def get_raw_data(self):
-        _data_header = struct.pack(
-            "!BBxB", self.version, self.status, self.atyp)
-
-        if self.atyp == ADDR_TYPE["IPV4"]:
-            _data_body = struct.pack("4sH", self.addr, self.port)
-
-        if self.atyp == ADDR_TYPE["IPV6"]:
-            _data_body = struct.pack("16sH", self.addr, self.port)
-
-        if self.atyp == ADDR_TYPE["DOMAINNAME"]:
-            _length = len(self.addr)
-            _data_body = struct.pack(
-                "B{}sH".format(_length), _length, self.addr, self.port)
-
-        return _data_header + _data_body
-
     def __eq__(self, value):
         return self.event_type == value
 
@@ -206,5 +153,3 @@ class Response(object):
             return "SOCKSv{0} Response: Status : {1}, Addr : {2} Port : {3}".format(
                 self.version, self.status,
                 self.addr, self.port)
-
-

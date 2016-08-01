@@ -1,9 +1,10 @@
 from transitions import Machine
 from define import AUTH_TYPE
-from parser import SocksParser, ParserError
 from events import NeedMoreData, GreetingResponse, Response
 from events import GreetingRequest, Request
 from events import AuthRequest, AuthResponse
+import reader
+import writer
 
 
 class ProtocolError(Exception):
@@ -38,30 +39,30 @@ class ClientConnection(object):
         self.set_state("end")
 
     def receive(self, data):
-        self._buffer += data
         try:
-            if self.state == 'greeting_response':
-                current_event = SocksParser.parse_greeting_response(
-                    self._buffer)
-                if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
-                    self.machine.set_state('request')
-                else:
-                    self.machine.set_state('auth_request')
+            self._buffer += data
+            _reader = getattr(reader, "read_" + self.state)
+            current_event = _reader(self._buffer)
 
-            elif self.state == 'auth_response':
-                current_event = SocksParser.parse_auth_response(self._buffer)
+        except reader.ParserError:
+            return NeedMoreData()
+
+        self._buffer = b""
+
+        if self.state == 'greeting_response':
+            if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
                 self.machine.set_state('request')
-
-            elif self.state == 'response':
-                current_event = SocksParser.parse_response(self._buffer)
-                self.machine.set_state('end')
-
             else:
-                raise ProtocolError
+                self.machine.set_state('auth_request')
 
-            self._buffer = b""
-        except ParserError:
-            current_event = NeedMoreData()
+        elif self.state == 'auth_response':
+            self.machine.set_state('request')
+
+        elif self.state == 'response':
+            self.machine.set_state('end')
+
+        else:
+            raise ProtocolError
 
         return current_event
 
@@ -78,6 +79,7 @@ class ClientConnection(object):
         if self.state == "request" and event != "Request":
             raise ProtocolError
 
+        _writer = getattr(writer, "write_" + self.event)
         if self.state == "greeting_request":
             self.machine.set_state("greeting_response")
 
@@ -87,8 +89,7 @@ class ClientConnection(object):
         if self.state == "request":
             self.machine.set_state("response")
 
-        return event.get_raw_data()
-
+        return _writer(event)
 
 class ServerConnection(object):
     states = [
@@ -118,29 +119,27 @@ class ServerConnection(object):
         self.set_state("end")
 
     def receive(self, data):
-        self._buffer += data
         try:
-            if self.state == 'greeting_request':
-                current_event = SocksParser.parse_greeting_request(
-                    self._buffer)
-                self.machine.set_state('greeting_response')
+            self._buffer += data
+            _reader = getattr(reader, "read_" + self.state)
+            current_event = _reader(self._buffer)
 
-            elif self.state == 'auth_request':
-                current_event = SocksParser.parse_auth_request(
-                    self._buffer)
-                self.machine.set_state('auth_response')
+        except reader.ParserError:
+            return NeedMoreData()
 
-            elif self.state == 'request':
-                current_event = SocksParser.parse_request(self._buffer)
-                self.machine.set_state('response')
+        if self.state == 'greeting_request':
+            self.machine.set_state('greeting_response')
 
-            else:
-                raise ProtocolError
+        elif self.state == 'auth_request':
+            self.machine.set_state('auth_response')
 
-            self._buffer = b""
-        except ParserError:
-            current_event = NeedMoreData()
+        elif self.state == 'request':
+            self.machine.set_state('response')
 
+        else:
+            raise ProtocolError
+
+        self._buffer = b""
         return current_event
 
     def send(self, event):
@@ -156,16 +155,17 @@ class ServerConnection(object):
         if self.state == "response" and event != "Response":
             raise ProtocolError
 
+        _writer = getattr(writer, "write_" + self.event)
         if self.state == "greeting_response":
             if event.auth_type == AUTH_TYPE["NO_AUTH"]:
                 self.machine.set_state("request")
             else:
                 self.machine.set_state("auth_request")
 
-        if self.state == "greeting_response":
+        if self.state == "auth_response":
             self.machine.set_state("request")
 
         if self.state == "response":
             self.machine.set_state("end")
 
-        return event.get_raw_data()
+        return _writer(event)
