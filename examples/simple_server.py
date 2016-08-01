@@ -1,6 +1,6 @@
+from socks5 import NeedMoreData, GreetingResponse, Response
+from socks5 import VERSION, AUTH_TYPE, RESP_STATUS
 from socks5.connection import ServerConnection
-from socks5.events import NeedMoreData, GreetingResponse, Response
-from socks5.define import SOCKS_VERSION, SOCKS_AUTH_TYPE, SOCKS_RESP_STATUS
 import socket
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,12 +16,12 @@ while True:
     while True:
         data = clientsock.recv(1024)
         _event = socks_conn.receive(data)
-        if _event is not NeedMoreData:
+        if _event != "NeedMoreData":
             break
 
     print _event
 
-    _event = GreetingResponse(SOCKS_VERSION, SOCKS_AUTH_TYPE["NO_AUTH"])
+    _event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
 
     print _event
     _data = socks_conn.send(_event)
@@ -30,11 +30,11 @@ while True:
     while True:
         data = clientsock.recv(1024)
         _event = socks_conn.receive(data)
-        if _event is not NeedMoreData:
+        if _event != "NeedMoreData":
             break
 
     print _event
-    _event = Response(SOCKS_VERSION, SOCKS_RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
+    _event = Response(VERSION, RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
     print _event
     _data = socks_conn.send(_event)
     clientsock.send(_data)

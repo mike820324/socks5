@@ -1,5 +1,5 @@
 import struct
-from define import SOCKS_ADDR_TYPE
+from define import ADDR_TYPE
 from events import GreetingRequest, GreetingResponse
 from events import AuthRequest, AuthResponse
 from events import Request, Response
@@ -62,13 +62,13 @@ class SocksParser(object):
             atyp = request_header_data[2]
 
             data_without_header = data[4:]
-            if atyp == SOCKS_ADDR_TYPE["IPV4"]:
+            if atyp == ADDR_TYPE["IPV4"]:
                 addr, port = struct.unpack('!4sH', data_without_header)
 
-            if atyp == SOCKS_ADDR_TYPE["IPV6"]:
+            if atyp == ADDR_TYPE["IPV6"]:
                 addr, port = struct.unpack('!16sH', data_without_header)
 
-            if atyp == SOCKS_ADDR_TYPE["DOMAINNAME"]:
+            if atyp == ADDR_TYPE["DOMAINNAME"]:
                 _length = int(struct.unpack('B', data_without_header[0])[0])
                 addr, port = struct.unpack(
                     '!x{0}sH'.format(_length), data_without_header)
@@ -87,13 +87,13 @@ class SocksParser(object):
             atyp = header_data[2]
 
             data_without_header = data[4:]
-            if atyp == SOCKS_ADDR_TYPE["IPV4"]:
+            if atyp == ADDR_TYPE["IPV4"]:
                 addr, port = struct.unpack('!4sH', data_without_header)
 
-            if atyp == SOCKS_ADDR_TYPE["IPV6"]:
+            if atyp == ADDR_TYPE["IPV6"]:
                 addr, port = struct.unpack('!16sH', data_without_header)
 
-            if atyp == SOCKS_ADDR_TYPE["DOMAINNAME"]:
+            if atyp == ADDR_TYPE["DOMAINNAME"]:
                 _length = int(struct.unpack('B', data_without_header[0])[0])
                 addr, port = struct.unpack(
                     '!x{0}sH'.format(_length), data_without_header)

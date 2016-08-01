@@ -1,5 +1,5 @@
 from transitions import Machine
-from define import SOCKS_AUTH_TYPE
+from define import AUTH_TYPE
 from parser import SocksParser, ParserError
 from events import NeedMoreData, GreetingResponse, Response
 from events import GreetingRequest, Request
@@ -43,7 +43,7 @@ class ClientConnection(object):
             if self.state == 'greeting_response':
                 current_event = SocksParser.parse_greeting_response(
                     self._buffer)
-                if current_event.auth_type == SOCKS_AUTH_TYPE["NO_AUTH"]:
+                if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
                     self.machine.set_state('request')
                 else:
                     self.machine.set_state('auth_request')
@@ -69,13 +69,13 @@ class ClientConnection(object):
         if self.state != "greeting_request" and self.state != "request" and self.state != "auth_request":
             raise ProtocolError
 
-        if self.state == "greeting_request" and not isinstance(event, GreetingRequest):
+        if self.state == "greeting_request" and event != "GreetingRequest":
             raise ProtocolError
 
-        if self.state == "auth_request" and not isinstance(event, AuthRequest):
+        if self.state == "auth_request" and event != "AuthRequest":
             raise ProtocolError
 
-        if self.state == "request" and not isinstance(event, Request):
+        if self.state == "request" and event != "Request":
             raise ProtocolError
 
         if self.state == "greeting_request":
@@ -147,17 +147,17 @@ class ServerConnection(object):
         if self.state != "greeting_response" and self.state != "response" and self.state != "auth_response":
             raise ProtocolError
 
-        if self.state == "greeting_response" and not isinstance(event, GreetingResponse):
+        if self.state == "greeting_response" and event != "GreetingResponse":
             raise ProtocolError
 
-        if self.state == "auth_response" and not isinstance(event, AuthResponse):
+        if self.state == "auth_response" and event != "AuthResponse":
             raise ProtocolError
 
-        if self.state == "response" and not isinstance(event, Response):
+        if self.state == "response" and event != "Response":
             raise ProtocolError
 
         if self.state == "greeting_response":
-            if event.auth_type == SOCKS_AUTH_TYPE["NO_AUTH"]:
+            if event.auth_type == AUTH_TYPE["NO_AUTH"]:
                 self.machine.set_state("request")
             else:
                 self.machine.set_state("auth_request")
