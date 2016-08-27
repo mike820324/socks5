@@ -79,7 +79,7 @@ class ClientConnection(object):
         if self.state == "request" and event != "Request":
             raise ProtocolError
 
-        _writer = getattr(writer, "write_" + self.event)
+        _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_request":
             self.machine.set_state("greeting_response")
 
@@ -155,7 +155,7 @@ class ServerConnection(object):
         if self.state == "response" and event != "Response":
             raise ProtocolError
 
-        _writer = getattr(writer, "write_" + self.event)
+        _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_response":
             if event.auth_type == AUTH_TYPE["NO_AUTH"]:
                 self.machine.set_state("request")

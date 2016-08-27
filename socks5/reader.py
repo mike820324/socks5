@@ -1,4 +1,5 @@
 import struct
+import ipaddress
 from define import ADDR_TYPE
 from events import GreetingRequest, GreetingResponse
 from events import AuthRequest, AuthResponse
@@ -11,9 +12,9 @@ class ParserError(Exception):
 
 def read_greeting_request(data):
     try:
-        version, nmethod = struct.unpack('BB', data[:2])
+        version, nmethod = struct.unpack('!BB', data[:2])
 
-        methods = struct.unpack("{0}B".format(nmethod), data[2:])
+        methods = struct.unpack("!{0}B".format(nmethod), data[2:])
     except struct.error:
         raise ParserError
 
@@ -22,7 +23,7 @@ def read_greeting_request(data):
 
 def read_greeting_response(data):
     try:
-        version, auth_type = struct.unpack('BB', data)
+        version, auth_type = struct.unpack('!BB', data)
     except struct.error:
         raise ParserError
 
@@ -31,7 +32,7 @@ def read_greeting_response(data):
 
 def read_auth_request(data):
     try:
-        version, _len = struct.unpack('BB', data[:2])
+        version, _len = struct.unpack('!BB', data[:2])
         username = struct.unpack('{}s'.format(_len), data[2:2+_len])
         _data = data[2+_len:]
         _len = struct.unpack('B', _data[0])
@@ -44,7 +45,7 @@ def read_auth_request(data):
 
 def read_auth_response(data):
     try:
-        version, status = struct.unpack('BB', data)
+        version, status = struct.unpack('!BB', data)
     except struct.error:
         raise ParserError
 
@@ -58,17 +59,23 @@ def read_request(data):
         cmd = request_header_data[1]
         atyp = request_header_data[2]
 
-        data_without_header = data[4:]
         if atyp == ADDR_TYPE["IPV4"]:
-            addr, port = struct.unpack('!4sH', data_without_header)
+            addr_raw_data = data[4: 8]
+            port_raw_data = data[8:]
+            addr = ipaddress.IPv4Address(addr_raw_data).compressed
 
         if atyp == ADDR_TYPE["IPV6"]:
-            addr, port = struct.unpack('!16sH', data_without_header)
+            addr_raw_data = data[4:20]
+            port_raw_data = data[20:]
+            addr = ipaddress.IPv6Address(addr_raw_data).compressed
 
         if atyp == ADDR_TYPE["DOMAINNAME"]:
-            _length = int(struct.unpack('B', data_without_header[0])[0])
-            addr, port = struct.unpack(
-                '!x{0}sH'.format(_length), data_without_header)
+            _length = int(struct.unpack('!B', data[4])[0])
+            addr_raw_data = data[5:(5 + _length)]
+            port_raw_data = data[(5 + _length):]
+            addr = addr_raw_data.decode('idna')
+
+        port = struct.unpack('!H', port_raw_data)[0]
 
     except struct.error:
         raise ParserError
@@ -83,17 +90,23 @@ def read_response(data):
         status = header_data[1]
         atyp = header_data[2]
 
-        data_without_header = data[4:]
         if atyp == ADDR_TYPE["IPV4"]:
-            addr, port = struct.unpack('!4sH', data_without_header)
+            addr_raw_data = data[4: 8]
+            port_raw_data = data[8:]
+            addr = ipaddress.IPv4Address(addr_raw_data).compressed
 
         if atyp == ADDR_TYPE["IPV6"]:
-            addr, port = struct.unpack('!16sH', data_without_header)
+            addr_raw_data = data[4:20]
+            port_raw_data = data[20:]
+            addr = ipaddress.IPv6Address(addr_raw_data).compressed
 
         if atyp == ADDR_TYPE["DOMAINNAME"]:
-            _length = int(struct.unpack('B', data_without_header[0])[0])
-            addr, port = struct.unpack(
-                '!x{0}sH'.format(_length), data_without_header)
+            _length = int(struct.unpack('!B', data[4])[0])
+            addr_raw_data = data[5:(5 + _length)]
+            port_raw_data = data[(5 + _length):]
+            addr = addr_raw_data.decode('idna')
+
+        port = struct.unpack('!H', port_raw_data)[0]
 
     except struct.error:
         raise ParserError
