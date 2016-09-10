@@ -29,7 +29,7 @@ class ClientConnection(object):
         self.machine = Machine(
             model=self, states=self.states, initial='init')
 
-    def initialiate_connection(self):
+    def initiate_connection(self):
         self.machine.set_state("greeting_request")
 
     def end_connection(self):
