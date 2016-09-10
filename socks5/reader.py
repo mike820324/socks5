@@ -33,10 +33,10 @@ def read_greeting_response(data):
 def read_auth_request(data):
     try:
         version, _len = struct.unpack('!BB', data[:2])
-        username = struct.unpack('{}s'.format(_len), data[2:2 + _len])
+        username, = struct.unpack('!{}s'.format(_len), data[2:2 + _len])
         _data = data[2 + _len:]
-        _len = struct.unpack('B', _data[0])
-        password = struct.unpack('{}s'.format(_len), _data[1:])
+        _len, = struct.unpack('!B', _data[0])
+        password, = struct.unpack('!{}s'.format(_len), _data[1:])
 
         return AuthRequest(version, username, password)
     except struct.error:
