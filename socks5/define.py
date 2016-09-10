@@ -30,4 +30,3 @@ ADDR_TYPE = {
     "DOMAINNAME": 0x03,
     "IPV6": 0x04
 }
-

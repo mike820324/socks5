@@ -1,8 +1,6 @@
 from transitions import Machine
 from define import AUTH_TYPE
-from events import NeedMoreData, GreetingResponse, Response
-from events import GreetingRequest, Request
-from events import AuthRequest, AuthResponse
+from events import NeedMoreData
 import reader
 import writer
 
@@ -90,6 +88,7 @@ class ClientConnection(object):
             self.machine.set_state("response")
 
         return _writer(event)
+
 
 class ServerConnection(object):
     states = [
