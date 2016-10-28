@@ -1,4 +1,4 @@
-from socks5 import NeedMoreData, GreetingResponse, Response
+from socks5 import GreetingResponse, Response
 from socks5 import VERSION, AUTH_TYPE, RESP_STATUS
 from socks5.connection import ServerConnection
 import socket
