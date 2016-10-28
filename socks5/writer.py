@@ -5,7 +5,7 @@ from socks5 import ADDR_TYPE
 
 def write_greeting_request(event):
     _data_header = struct.pack('!BB', event.version, event.nmethod)
-    _data_body = struct.pack('!{}B'.format(event.nmethod), event.methods)
+    _data_body = struct.pack('!{}B'.format(event.nmethod), *event.methods)
     return _data_header + _data_body
 
 
@@ -16,8 +16,8 @@ def write_greeting_response(event):
 
 def write_auth_request(event):
     _data = struct.pack(
-        "!BB{0}s{1}s".format(len(event.username), len(event.password)),
-        event.version, event.username, event.password)
+        "!BB{0}sB{1}s".format(len(event.username), len(event.password)),
+        event.version, len(event.username), event.username, len(event.password), event.password)
     return _data
 
 

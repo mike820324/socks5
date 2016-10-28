@@ -3,6 +3,8 @@ omit = socks5/tests/*
 exclude_lines =
     pragma: no cover
     def __repr__
+    def __str__
+    def __ne__
     raise AssertionError
     raise NotImplementedError
     if __name__ == .__main__.:
