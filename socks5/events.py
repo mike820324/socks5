@@ -170,6 +170,9 @@ class Response(object):
         self.version = version
         self.status = status
         self.atyp = atyp
+
+        # TODO: Add validation for addr and port
+        # - addr: can use ipaddress module to validate
         self.addr = addr
         self.port = port
 

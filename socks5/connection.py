@@ -34,9 +34,12 @@ class ClientConnection(object):
         if self.state != "response":
             raise ProtocolError
 
-        self.set_state("end")
+        self.machine.set_state("end")
 
     def receive(self, data):
+        if self.state not in ("greeting_response", "auth_response", "response"):
+            raise ProtocolError
+
         try:
             self._buffer += data
             _reader = getattr(reader, "read_" + self.state)
@@ -59,13 +62,10 @@ class ClientConnection(object):
         elif self.state == 'response':
             self.machine.set_state('end')
 
-        else:
-            raise ProtocolError
-
         return current_event
 
     def send(self, event):
-        if self.state != "greeting_request" and self.state != "request" and self.state != "auth_request":
+        if self.state not in ("greeting_request", "auth_request", "request"):
             raise ProtocolError
 
         if self.state == "greeting_request" and event != "GreetingRequest":
@@ -115,9 +115,12 @@ class ServerConnection(object):
         if self.state != "response":
             raise ProtocolError
 
-        self.set_state("end")
+        self.machine.set_state("end")
 
     def receive(self, data):
+        if self.state not in ("greeting_request", "auth_request", "request"):
+            raise ProtocolError
+
         try:
             self._buffer += data
             _reader = getattr(reader, "read_" + self.state)
@@ -135,14 +138,11 @@ class ServerConnection(object):
         elif self.state == 'request':
             self.machine.set_state('response')
 
-        else:
-            raise ProtocolError
-
         self._buffer = b""
         return current_event
 
     def send(self, event):
-        if self.state != "greeting_response" and self.state != "response" and self.state != "auth_response":
+        if self.state not in ("greeting_response", "auth_response", "response"):
             raise ProtocolError
 
         if self.state == "greeting_response" and event != "GreetingResponse":

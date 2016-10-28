@@ -30,7 +30,7 @@ class TestWriter(unittest.TestCase):
         self.assertEqual(data, expected_data)
 
     def test_greeting_response(self):
-        event = GreetingResponse(VERSION, RESP_STATUS["SUCCESS"])
+        event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
         data = write_greeting_response(event)
         expected_data = struct.pack("!BB", 0x5, 0x0)
         self.assertEqual(data, expected_data)
