@@ -1,63 +1,44 @@
-import struct
 import ipaddress
 from socks5 import ADDR_TYPE
+from socks5.data_structure import GreetingRequest, GreetingResponse
+from socks5.data_structure import AuthRequest, AuthResponse
+from socks5.data_structure import Request, Response
 
 
 def write_greeting_request(event):
-    _data_header = struct.pack('!BB', event.version, event.nmethod)
-    _data_body = struct.pack('!{}B'.format(event.nmethod), *event.methods)
-    return _data_header + _data_body
+    return GreetingRequest.build(event.__dict__)
 
 
 def write_greeting_response(event):
-    _data = struct.pack('!BB', event.version, event.auth_type)
-    return _data
+    return GreetingResponse.build(event.__dict__)
 
 
 def write_auth_request(event):
-    _data = struct.pack(
-        "!BB{0}sB{1}s".format(len(event.username), len(event.password)),
-        event.version, len(event.username), event.username, len(event.password), event.password)
-    return _data
+    return AuthRequest.build(event.__dict__)
 
 
 def write_auth_response(event):
-    _data = struct.pack('!BB', event.version, event.status)
-    return _data
+    return AuthResponse.build(event.__dict__)
 
 
 def write_request(event):
-    _data_header = struct.pack("!BBxB", event.version, event.cmd, event.atyp)
+    event_dict = event.__dict__
 
     if event.atyp == ADDR_TYPE["IPV4"]:
-        _data_addr = ipaddress.IPv4Address(event.addr).packed
+        event_dict["addr"] = int(ipaddress.IPv4Address(event.addr))
 
-    if event.atyp == ADDR_TYPE["IPV6"]:
-        _data_addr = ipaddress.IPv6Address(event.addr).packed
-
-    if event.atyp == ADDR_TYPE["DOMAINNAME"]:
-        _length = len(event.addr)
-        _data_addr = struct.pack('!B', _length)
-        _data_addr += event.addr.encode('idna')
-
-    _data_port = struct.pack('!H', event.port)
-    return _data_header + _data_addr + _data_port
+    elif event.atyp == ADDR_TYPE["IPV6"]:
+        event_dict["addr"] = int(ipaddress.IPv6Address(event.addr))
+    return Request.build(event_dict)
 
 
 def write_response(event):
-    _data_header = struct.pack(
-        "!BBxB", event.version, event.status, event.atyp)
+    event_dict = event.__dict__
 
     if event.atyp == ADDR_TYPE["IPV4"]:
-        _data_addr = ipaddress.IPv4Address(event.addr).packed
+        event_dict["addr"] = int(ipaddress.IPv4Address(event.addr))
 
-    if event.atyp == ADDR_TYPE["IPV6"]:
-        _data_addr = ipaddress.IPv6Address(event.addr).packed
+    elif event.atyp == ADDR_TYPE["IPV6"]:
+        event_dict["addr"] = int(ipaddress.IPv6Address(event.addr))
 
-    if event.atyp == ADDR_TYPE["DOMAINNAME"]:
-        _length = len(event.addr)
-        _data_addr = struct.pack('!B', _length)
-        _data_addr += event.addr.encode('idna')
-
-    _data_port = struct.pack('!H', event.port)
-    return _data_header + _data_addr + _data_port
+    return Response.build(event_dict)
