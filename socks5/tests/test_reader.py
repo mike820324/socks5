@@ -15,13 +15,16 @@ class TestReader(unittest.TestCase):
             struct.pack("!BB2B", 0x5, 0x2, 0x00, 0x01))
         self.assertEqual(request.version, 5)
         self.assertEqual(request.nmethod, 2)
-        self.assertEqual(request.methods, (0, 1))
+        self.assertIn(0, request.methods)
+        self.assertIn(1, request.methods)
 
         request = read_greeting_request(
             struct.pack("!BB3B", 0x5, 0x3, 0x00, 0x01, 0x02))
         self.assertEqual(request.version, 5)
         self.assertEqual(request.nmethod, 3)
-        self.assertEqual(request.methods, (0, 1, 2))
+        self.assertIn(0, request.methods)
+        self.assertIn(1, request.methods)
+        self.assertIn(2, request.methods)
 
     def test_greeting_request_failed(self):
         with self.assertRaises(ParserError):

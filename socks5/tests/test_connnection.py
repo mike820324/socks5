@@ -145,7 +145,8 @@ class TestServerConnection(unittest.TestCase):
         self.assertEqual(event, "GreetingRequest")
         self.assertEqual(event.version, 5)
         self.assertEqual(event.nmethod, 2)
-        self.assertEqual(event.methods, (0, 1))
+        self.assertIn(0, event.methods)
+        self.assertIn(1, event.methods)
 
     def test_recv_in_auth_request(self):
         conn = ServerConnection()
