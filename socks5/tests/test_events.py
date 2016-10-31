@@ -98,6 +98,16 @@ class TestEvents(unittest.TestCase):
             Request(
                 VERSION, REQ_COMMAND["CONNECT"], 0xff, u"127.0.0.1", 8080)
 
+    def test_request_incorrect_ipv4_format(self):
+        with self.assertRaises(ValueError):
+            Request(
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1.1", 8080)
+
+    def test_request_incorrect_ipv6_format(self):
+        with self.assertRaises(ValueError):
+            Request(
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], u":::::::1", 8080)
+
     def test_response(self):
         event = Response(VERSION, RESP_STATUS["SUCCESS"], ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
         self.assertEqual(event, "Response")
@@ -121,3 +131,13 @@ class TestEvents(unittest.TestCase):
         with self.assertRaises(ValueError):
             Response(
                 VERSION, RESP_STATUS["SUCCESS"], 0xff, u"127.0.0.1", 8080)
+
+    def test_response_incorrect_ipv4_format(self):
+        with self.assertRaises(ValueError):
+            Response(
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1.1", 8080)
+
+    def test_response_incorrect_ipv6_format(self):
+        with self.assertRaises(ValueError):
+            Response(
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], u":::::::1", 8080)

@@ -123,11 +123,20 @@ class Request(object):
         if atyp not in ADDR_TYPE.values():
             raise ValueError("Unsupported address type {}".format(atyp))
 
+        if atyp == ADDR_TYPE["IPV4"]:
+            try:
+                ipaddress.IPv4Address(addr)
+            except ipaddress.AddressValueError:
+                raise ValueError("Invalid ipaddress format")
+        elif atyp == ADDR_TYPE["IPV6"]:
+            try:
+                ipaddress.IPv6Address(addr)
+            except ipaddress.AddressValueError:
+                raise ValueError("Invalid ipaddress format")
+
         self.version = version
         self.cmd = cmd
         self.atyp = atyp
-        # TODO: Add validation for addr and port
-        # - addr: can use ipaddress module to validate
         self.addr = addr
         self.port = port
 
@@ -167,12 +176,20 @@ class Response(object):
         if atyp not in ADDR_TYPE.values():
             raise ValueError("Unsupported address type {}".format(atyp))
 
+        if atyp == ADDR_TYPE["IPV4"]:
+            try:
+                ipaddress.IPv4Address(addr)
+            except ipaddress.AddressValueError:
+                raise ValueError("Invalid ipaddress format")
+        elif atyp == ADDR_TYPE["IPV6"]:
+            try:
+                ipaddress.IPv6Address(addr)
+            except ipaddress.AddressValueError:
+                raise ValueError("Invalid ipaddress format")
+
         self.version = version
         self.status = status
         self.atyp = atyp
-
-        # TODO: Add validation for addr and port
-        # - addr: can use ipaddress module to validate
         self.addr = addr
         self.port = port
 
