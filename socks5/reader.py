@@ -51,9 +51,9 @@ def read_request(data):
     try:
         parsed_data = dict(data_structure.Request.parse(data))
         if parsed_data["atyp"] == ADDR_TYPE["IPV4"]:
-            parsed_data["addr"] = str(ipaddress.IPv4Address(parsed_data["addr"]))
+            parsed_data["addr"] = unicode(ipaddress.IPv4Address(parsed_data["addr"]))
         elif parsed_data["atyp"] == ADDR_TYPE["IPV6"]:
-            parsed_data["addr"] = str(ipaddress.IPv6Address(parsed_data["addr"]))
+            parsed_data["addr"] = unicode(ipaddress.IPv6Address(parsed_data["addr"]))
         elif parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
             parsed_data["addr"] = parsed_data["addr"].decode("idna")
 
@@ -67,9 +67,9 @@ def read_response(data):
     try:
         parsed_data = dict(data_structure.Response.parse(data))
         if parsed_data["atyp"] == ADDR_TYPE["IPV4"]:
-            parsed_data["addr"] = str(ipaddress.IPv4Address(parsed_data["addr"]))
+            parsed_data["addr"] = unicode(ipaddress.IPv4Address(parsed_data["addr"]))
         elif parsed_data["atyp"] == ADDR_TYPE["IPV6"]:
-            parsed_data["addr"] = str(ipaddress.IPv6Address(parsed_data["addr"]))
+            parsed_data["addr"] = unicode(ipaddress.IPv6Address(parsed_data["addr"]))
         elif parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
             parsed_data["addr"] = parsed_data["addr"].decode("idna")
 
