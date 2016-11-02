@@ -12,7 +12,7 @@ class ProtocolError(Exception):
     pass
 
 
-class ClientConnection(object):
+class _ClientConnection(object):
     states = [
         'init',
         'greeting_request',
@@ -39,7 +39,7 @@ class ClientConnection(object):
 
         self.machine.set_state("end")
 
-    def receive(self, data):
+    def recv(self, data):
         if self.state not in ("greeting_response", "auth_response", "response"):
             raise ProtocolError
 
@@ -93,7 +93,7 @@ class ClientConnection(object):
         return _writer(event)
 
 
-class ServerConnection(object):
+class _ServerConnection(object):
     states = [
         'init',
         'greeting_request',
@@ -120,7 +120,7 @@ class ServerConnection(object):
 
         self.machine.set_state("end")
 
-    def receive(self, data):
+    def recv(self, data):
         if self.state not in ("greeting_request", "auth_request", "request"):
             raise ProtocolError
 
@@ -171,3 +171,28 @@ class ServerConnection(object):
             self.machine.set_state("end")
 
         return _writer(event)
+
+
+class Connection(object):
+    def __init__(self, our_role):
+        if our_role == "server":
+            self._conn = _ServerConnection()
+        elif our_role == "client":
+            self._conn = _ClientConnection()
+        else:
+            raise ValueError("unknonw role {}".format(our_role))
+
+        # self.machine = Machine(
+        #     model=self, states=self._conn.states, initial='init')
+
+    def initiate_connection(self):
+        self._conn.initiate_connection()
+
+    def end_connection(self):
+        self._conn.end_connection()
+
+    def recv(self, data):
+        return self._conn.recv(data)
+
+    def send(self, event):
+        return self._conn.send(event)
