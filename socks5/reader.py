@@ -1,10 +1,18 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import sys
 import construct
-import ipaddress
-from define import ADDR_TYPE
-from events import GreetingRequest, GreetingResponse
-from events import AuthRequest, AuthResponse
-from events import Request, Response
-import data_structure
+
+from socks5 import data_structure
+from socks5.define import ADDR_TYPE
+from socks5.events import GreetingRequest, GreetingResponse
+from socks5.events import AuthRequest, AuthResponse
+from socks5.events import Request, Response
+
+if sys.version_info.major <= 2:
+    string_func = unicode
+else:
+    string_func = str
 
 
 class ParserError(Exception):
@@ -32,6 +40,8 @@ def read_greeting_response(data):
 def read_auth_request(data):
     try:
         parsed_data = dict(data_structure.AuthRequest.parse(data))
+        parsed_data["username"] = string_func(parsed_data["username"], encoding="ascii")
+        parsed_data["password"] = string_func(parsed_data["password"], encoding="ascii")
     except (construct.FieldError, construct.RangeError):
         raise ParserError
 
@@ -50,12 +60,8 @@ def read_auth_response(data):
 def read_request(data):
     try:
         parsed_data = dict(data_structure.Request.parse(data))
-        if parsed_data["atyp"] == ADDR_TYPE["IPV4"]:
-            parsed_data["addr"] = unicode(ipaddress.IPv4Address(parsed_data["addr"]))
-        elif parsed_data["atyp"] == ADDR_TYPE["IPV6"]:
-            parsed_data["addr"] = unicode(ipaddress.IPv6Address(parsed_data["addr"]))
-        elif parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
-            parsed_data["addr"] = parsed_data["addr"].decode("idna")
+        if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
+            parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
 
     except (construct.FieldError, construct.RangeError):
         raise ParserError
@@ -66,12 +72,8 @@ def read_request(data):
 def read_response(data):
     try:
         parsed_data = dict(data_structure.Response.parse(data))
-        if parsed_data["atyp"] == ADDR_TYPE["IPV4"]:
-            parsed_data["addr"] = unicode(ipaddress.IPv4Address(parsed_data["addr"]))
-        elif parsed_data["atyp"] == ADDR_TYPE["IPV6"]:
-            parsed_data["addr"] = unicode(ipaddress.IPv6Address(parsed_data["addr"]))
-        elif parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
-            parsed_data["addr"] = parsed_data["addr"].decode("idna")
+        if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
+            parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
 
     except (construct.FieldError, construct.RangeError):
         raise ParserError

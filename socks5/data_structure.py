@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from construct import this
 from construct import Struct, Enum, Switch, Array
 from construct import Byte, BytesInteger, Int8ub, Int16ub, Padding
@@ -62,7 +64,7 @@ Request = Struct(
         {
             0x1: BytesInteger(4),
             0x4: BytesInteger(16),
-            0x3: PascalString(Byte, encoding="ascii")
+            0x3: PascalString(Byte)
         }
     ),
     "port" / Int16ub
@@ -77,7 +79,7 @@ Response = Struct(
         {
             0x1: BytesInteger(4),
             0x4: BytesInteger(16),
-            0x3: PascalString(Byte, encoding="ascii")
+            0x3: PascalString(Byte)
         }
     ),
     "port" / Int16ub

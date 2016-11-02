@@ -1,8 +1,11 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from transitions import Machine
-from define import AUTH_TYPE
-from events import NeedMoreData
-import reader
-import writer
+
+from socks5.define import AUTH_TYPE
+from socks5.events import NeedMoreData
+from socks5 import reader
+from socks5 import writer
 
 
 class ProtocolError(Exception):

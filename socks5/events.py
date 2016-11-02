@@ -1,5 +1,12 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+import sys
 import ipaddress
-from define import VERSION, ADDR_TYPE, REQ_COMMAND, RESP_STATUS
+from socks5.define import VERSION, ADDR_TYPE, REQ_COMMAND, RESP_STATUS
+
+if sys.version_info.major <= 2:
+    string_func = unicode
+else:
+    string_func = str
 
 
 class NeedMoreData(object):
@@ -71,6 +78,9 @@ class AuthRequest(object):
         if version != VERSION:
             raise ValueError("Only support socks version 5")
 
+        if not isinstance(username, string_func) or not isinstance(password, string_func):
+            raise ValueError("username or password expect to be unicode string")
+
         if len(username) >= 256 or len(password) >= 256:
             raise ValueError("username or password too long")
 
@@ -95,6 +105,9 @@ class AuthResponse(object):
     def __init__(self, version, status):
         if version != VERSION:
             raise ValueError("Only support socks version 5")
+
+        if status not in RESP_STATUS.values():
+            raise ValueError("Unsupported status code")
 
         self.version = version
         self.status = status
@@ -125,19 +138,21 @@ class Request(object):
 
         if atyp == ADDR_TYPE["IPV4"]:
             try:
-                ipaddress.IPv4Address(addr)
+                addr = ipaddress.IPv4Address(addr)
             except ipaddress.AddressValueError:
-                raise ValueError("Invalid ipaddress format")
+                raise ValueError("Invalid ipaddress format for IPv4")
         elif atyp == ADDR_TYPE["IPV6"]:
             try:
-                ipaddress.IPv6Address(addr)
+                addr = ipaddress.IPv6Address(addr)
             except ipaddress.AddressValueError:
-                raise ValueError("Invalid ipaddress format")
+                raise ValueError("Invalid ipaddress format for IPv6")
+        elif atyp == ADDR_TYPE["DOMAINNAME"] and not isinstance(addr, string_func):
+            raise ValueError("Domain name expect to be unicode string")
 
         self.version = version
         self.cmd = cmd
         self.atyp = atyp
-        self.addr = addr
+        self.addr = string_func(addr)
         self.port = port
 
     def __eq__(self, value):
@@ -178,19 +193,21 @@ class Response(object):
 
         if atyp == ADDR_TYPE["IPV4"]:
             try:
-                ipaddress.IPv4Address(addr)
+                addr = ipaddress.IPv4Address(addr)
             except ipaddress.AddressValueError:
-                raise ValueError("Invalid ipaddress format")
+                raise ValueError("Invalid ipaddress format for IPv4")
         elif atyp == ADDR_TYPE["IPV6"]:
             try:
-                ipaddress.IPv6Address(addr)
+                addr = ipaddress.IPv6Address(addr)
             except ipaddress.AddressValueError:
-                raise ValueError("Invalid ipaddress format")
+                raise ValueError("Invalid ipaddress format for IPv6")
+        elif atyp == ADDR_TYPE["DOMAINNAME"] and not isinstance(addr, string_func):
+            raise ValueError("Domain name expect to be unicode string")
 
         self.version = version
         self.status = status
         self.atyp = atyp
-        self.addr = addr
+        self.addr = string_func(addr)
         self.port = port
 
     def __eq__(self, value):
