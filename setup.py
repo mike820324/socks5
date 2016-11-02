@@ -12,7 +12,7 @@ with open(os.path.join(here, './requirements.txt')) as f:
 
 setup(
     name="socks5",
-    version="0.1.0",
+    version="0.2.0",
     description="SOCKSv5 bring your own io library",
     long_description=long_description,
     url="https://github.com/mike820324/socks5",
