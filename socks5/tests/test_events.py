@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import unittest
+import ipaddress
 
 from socks5.events import (
     NeedMoreData,
@@ -18,7 +20,7 @@ class TestEvents(unittest.TestCase):
         self.assertEqual(event, "NeedMoreData")
 
     def test_greeting_request(self):
-        event = GreetingRequest(VERSION, 1, [AUTH_TYPE["NO_AUTH"]])
+        event = GreetingRequest(VERSION, [AUTH_TYPE["NO_AUTH"]])
         self.assertEqual(event, "GreetingRequest")
         self.assertEqual(event.version, VERSION)
         self.assertEqual(event.nmethod, 1)
@@ -26,15 +28,11 @@ class TestEvents(unittest.TestCase):
 
     def test_greeting_request_incorrect_version(self):
         with self.assertRaises(ValueError):
-            GreetingRequest(0x4, 1, [AUTH_TYPE["NO_AUTH"]])
+            GreetingRequest(0x4, [AUTH_TYPE["NO_AUTH"]])
 
     def test_greeting_request_incorrect_methods_type(self):
         with self.assertRaises(ValueError):
-            GreetingRequest(VERSION, 1, AUTH_TYPE["NO_AUTH"])
-
-    def test_greeting_request_methods_num_mismatch(self):
-        with self.assertRaises(ValueError):
-            GreetingRequest(VERSION, 2, [AUTH_TYPE["NO_AUTH"]])
+            GreetingRequest(VERSION, AUTH_TYPE["NO_AUTH"])
 
     def test_greeting_response(self):
         event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
@@ -76,69 +74,69 @@ class TestEvents(unittest.TestCase):
             AuthResponse(0x04, RESP_STATUS["SUCCESS"])
 
     def test_request(self):
-        event = Request(VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+        event = Request(VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
         self.assertEqual(event, "Request")
         self.assertEqual(event.version, VERSION)
         self.assertEqual(event.cmd, REQ_COMMAND["CONNECT"])
         self.assertEqual(event.atyp, ADDR_TYPE["IPV4"])
-        self.assertEqual(event.addr, u"127.0.0.1")
+        self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.port, 8080)
 
     def test_request_incorrect_version(self):
         with self.assertRaises(ValueError):
             Request(
-                0x04, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+                0x04, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
 
     def test_request_unsupported_cmd_type(self):
         with self.assertRaises(ValueError):
             Request(
-                VERSION, 0xff, ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+                VERSION, 0xff, ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
 
     def test_request_unsupported_addr_type(self):
         with self.assertRaises(ValueError):
             Request(
-                VERSION, REQ_COMMAND["CONNECT"], 0xff, u"127.0.0.1", 8080)
+                VERSION, REQ_COMMAND["CONNECT"], 0xff, "127.0.0.1", 8080)
 
     def test_request_incorrect_ipv4_format(self):
         with self.assertRaises(ValueError):
             Request(
-                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1.1", 8080)
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], "127.0.0.1.1", 8080)
 
     def test_request_incorrect_ipv6_format(self):
         with self.assertRaises(ValueError):
             Request(
-                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], u":::::::1", 8080)
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], ":::::::1", 8080)
 
     def test_response(self):
-        event = Response(VERSION, RESP_STATUS["SUCCESS"], ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+        event = Response(VERSION, RESP_STATUS["SUCCESS"], ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
         self.assertEqual(event, "Response")
         self.assertEqual(event.version, VERSION)
         self.assertEqual(event.status, RESP_STATUS["SUCCESS"])
         self.assertEqual(event.atyp, ADDR_TYPE["IPV4"])
-        self.assertEqual(event.addr, u"127.0.0.1")
+        self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.port, 8080)
 
     def test_response_incorrect_version(self):
         with self.assertRaises(ValueError):
             Response(
-                0x04, RESP_STATUS["SUCCESS"], ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+                0x04, RESP_STATUS["SUCCESS"], ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
 
     def test_response_incorrect_status_code(self):
         with self.assertRaises(ValueError):
             Response(
-                VERSION, 0xff, ADDR_TYPE["IPV4"], u"127.0.0.1", 8080)
+                VERSION, 0xff, ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
 
     def test_response_unsupported_addr_type(self):
         with self.assertRaises(ValueError):
             Response(
-                VERSION, RESP_STATUS["SUCCESS"], 0xff, u"127.0.0.1", 8080)
+                VERSION, RESP_STATUS["SUCCESS"], 0xff, "127.0.0.1", 8080)
 
     def test_response_incorrect_ipv4_format(self):
         with self.assertRaises(ValueError):
             Response(
-                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], u"127.0.0.1.1", 8080)
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], "127.0.0.1.1", 8080)
 
     def test_response_incorrect_ipv6_format(self):
         with self.assertRaises(ValueError):
             Response(
-                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], u":::::::1", 8080)
+                VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV6"], ":::::::1", 8080)

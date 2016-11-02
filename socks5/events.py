@@ -23,21 +23,43 @@ class NeedMoreData(object):
 
 
 class GreetingRequest(object):
+    """
+    This event represent the socks5 greeting request.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        methods (list/tuple): a list of query methods.
+            The supported methods can be found in ::define.py::
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+            - methods type is not list or tuple.
+
+    Example:
+        >>> event = GreetingRequest(5, [0, 1])
+        >>> event == "GreetingRequest"
+        True
+        >>> event.version == 5
+        True
+        >>> event.nmethod == 2
+        True
+        >>> event.methods == [0, 1]
+        True
+    """
     event_type = "GreetingRequest"
 
-    def __init__(self, version, nmethod, methods):
+    def __init__(self, version, methods):
         if version != VERSION:
             raise ValueError("Only support socks version 5")
 
         if not isinstance(methods, list) and not isinstance(methods, tuple):
             raise ValueError("methods should be a list or tuple")
 
-        if nmethod != len(methods):
-            raise ValueError("methods and nmethod number mismatch")
-
         self.version = version
-        self.nmethod = nmethod
-        self.methods = methods
+        self.nmethod = len(methods)
+        self.methods = list(methods)
 
     def __eq__(self, value):
         return self.event_type == value
@@ -51,6 +73,28 @@ class GreetingRequest(object):
 
 
 class GreetingResponse(object):
+    """
+    This event represent the socks5 greeting response.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        auth_type (int): specify the auth type server selected.
+            The supported auth_type can be found in ::define.py::
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+
+    Example:
+        >>> event = GreetingResponse(5, 0)
+        >>> event == "GreetingResponse"
+        True
+        >>> event.version == 5
+        True
+        >>> event.auth_type == 0
+        True
+    """
     event_type = "GreetingResponse"
 
     def __init__(self, version, auth_type):
@@ -72,6 +116,49 @@ class GreetingResponse(object):
 
 
 class AuthRequest(object):
+    """
+    This event represent the socks5 auth request.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        username (unicode):  specify the username.
+        password (unicode): specify the password.
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+            - username type is not unicode.
+            - password type is not unicode.
+
+    Example:
+        >>> # python 2 example
+        >>> import sys
+        >>> sys.version_info.major
+        2
+        >>> event = AuthRequest(5, u"user", u"password")
+        >>> event == "AuthRequest"
+        True
+        >>> event.version == 5
+        True
+        >>> event.username == u"user"
+        True
+        >>> event.password == u"password"
+        True
+        >>> # python 3 example
+        >>> import sys
+        >>> sys.version_info.major
+        3
+        >>> event = AuthRequest(5, "user", "password")
+        >>> event == "AuthRequest"
+        True
+        >>> event.version == 5
+        True
+        >>> event.username == "user"
+        True
+        >>> event.password == "password"
+        True
+    """
     event_type = "AuthRequest"
 
     def __init__(self, version, username, password):
@@ -100,6 +187,29 @@ class AuthRequest(object):
 
 
 class AuthResponse(object):
+    """
+    This event represent the socks5 auth response.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        status (int):  specify the socks server response status code.
+            The supported socks status code can be found in ::define.py::
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+            - specify an unsupported status code.
+
+    Example:
+        >>> event = AuthResponse(5, 0)
+        >>> event == "AuthResponse"
+        True
+        >>> event.version == 5
+        True
+        >>> event.status == 0
+        True
+    """
     event_type = "AuthResponse"
 
     def __init__(self, version, status):
@@ -124,6 +234,106 @@ class AuthResponse(object):
 
 
 class Request(object):
+    """
+    This event represent the socks5 request.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        cmd (int):  specify the request command type.
+            The supported value can be found in ::define.py::
+        atyp (int):  specify the request address type.
+            The supported value can be found in ::define.py::
+        addr (unicode/int):  specify the address.
+        port (int):  specify the port.
+
+    Note:
+        The ::addr:: field can accept any ipaddress.ip_address compatible value.
+        If the ::atyp:: type is domain name, the value **MUST** be a unicode type.
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+            - specify an unsupported cmd type or atyp type.
+            - addr field type incorrect.
+            - addr field mismatched with atyp type.
+
+    Example:
+        >>> # python 2 example
+        >>> import sys
+        >>> sys.version_info.major_version
+        2
+        >>> event = Request(5, 1, 1, u"127.0.0.1", 5580)
+        >>> event == "Request"
+        True
+        >>> event.version
+        5
+        >>> event.cmd
+        1
+        >>> event.atyp
+        1
+        >>> event.addr
+        IPv4Address('127.0.0.1')
+        >>> event.port
+        5580
+        >>> # addr type is integer
+        >>> event = Request(5, 1, 1, 1, 5580)
+        >>> event == "Request"
+        True
+        >>> event.version
+        5
+        >>> event.cmd
+        1
+        >>> event.atyp
+        1
+        >>> event.addr
+        IPv4Address('0.0.0.1')
+        >>> event.port
+        5580
+        >>> event = Request(5, 1, 3, u"google.com", 5580)
+        >>> event == "Request"
+        True
+        >>> event.version
+        5
+        >>> event.cmd
+        1
+        >>> event.atyp
+        1
+        >>> event.addr
+        u"google.com"
+        >>> event.port
+        5580
+        >>> # python 3 example
+        >>> import sys
+        >>> sys.version_info.major_version
+        3
+        >>> event = Request(5, 1, 1, "127.0.0.1", 5580)
+        >>> event == "Request"
+        True
+        >>> event.version
+        5
+        >>> event.cmd
+        1
+        >>> event.atyp
+        1
+        >>> event.addr
+        IPv4Address('127.0.0.1')
+        >>> event.port
+        5580
+        >>> event = Request(5, 1, 3, "google.com", 5580)
+        >>> event == "Request"
+        True
+        >>> event.version
+        5
+        >>> event.cmd
+        1
+        >>> event.atyp
+        1
+        >>> event.addr
+        "google.com"
+        >>> event.port
+        5580
+    """
     event_type = "Request"
 
     def __init__(self, version, cmd, atyp, addr, port):
@@ -152,7 +362,7 @@ class Request(object):
         self.version = version
         self.cmd = cmd
         self.atyp = atyp
-        self.addr = string_func(addr)
+        self.addr = addr
         self.port = port
 
     def __eq__(self, value):
@@ -179,6 +389,94 @@ class Request(object):
 
 
 class Response(object):
+    """
+    This event represent the socks5 response.
+
+    Args:
+        version (int): specify the socks version. Currently only 5 is supported.
+            The supported socks version can be found in ::define.py::
+        status (int):  specify the socks server response status code.
+            The supported value can be found in ::define.py::
+        atyp (int):  specify the request address type.
+            The supported value can be found in ::define.py::
+        addr (unicode/int):  specify the address.
+        port (int):  specify the port.
+
+    Note:
+        The ::addr:: field can accept any ipaddress.ip_address compatible value.
+        If the ::atyp:: type is domain name, the value **MUST** be a unicode type.
+
+    Raise:
+        ValueError: ValueError will be raised when the following condition occured.
+            - version is not supported. Currently, the supported version is 5.
+            - specify an unsupported status type or atyp type.
+            - addr field type incorrect.
+            - addr field mismatched with atyp type.
+
+    Example:
+        >>> # python 2 example
+        >>> import sys
+        >>> sys.version_info.major_version
+        2
+        >>> event = Response(5, 0, 1, u"127.0.0.1", 5580)
+        >>> event == "Response"
+        True
+        >>> event.version
+        5
+        >>> event.status
+        0
+        >>> event.atyp
+        1
+        >>> event.addr
+        IPv4Address('127.0.0.1')
+        >>> int(event.addr)
+        2130706433
+        >>> event.port
+        5580
+        >>> event = Response(5, 0, 3, u"google.com", 5580)
+        >>> event == "Response"
+        True
+        >>> event.version
+        5
+        >>> event.status
+        0
+        >>> event.atyp
+        1
+        >>> event.addr
+        u"google.com"
+        >>> event.port
+        5580
+        >>> # python 3 example
+        >>> import sys
+        >>> sys.version_info.major_version
+        3
+        >>> event = Respopnse(5, 0, 1, "127.0.0.1", 5580)
+        >>> event == "Respopnse"
+        True
+        >>> event.version
+        5
+        >>> event.status
+        0
+        >>> event.atyp
+        1
+        >>> event.addr
+        IPv4Address('127.0.0.1')
+        >>> event.port
+        5580
+        >>> event = Response(5, 0, 3, "google.com", 5580)
+        >>> event == "Response"
+        True
+        >>> event.version
+        5
+        >>> event.status
+        0
+        >>> event.atyp
+        1
+        >>> event.addr
+        "google.com"
+        >>> event.port
+        5580
+    """
     event_type = "Response"
 
     def __init__(self, version, status, atyp, addr, port):
@@ -207,7 +505,7 @@ class Response(object):
         self.version = version
         self.status = status
         self.atyp = atyp
-        self.addr = string_func(addr)
+        self.addr = addr
         self.port = port
 
     def __eq__(self, value):

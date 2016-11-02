@@ -25,6 +25,8 @@ def read_greeting_request(data):
     except (construct.FieldError, construct.RangeError):
         raise ParserError
 
+    parsed_data = dict(parsed_data)
+    parsed_data.pop("nmethod")
     return GreetingRequest(**parsed_data)
 
 

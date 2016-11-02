@@ -20,12 +20,12 @@ from socks5.define import (
 
 class TestWriter(unittest.TestCase):
     def test_greeting_request(self):
-        event = GreetingRequest(VERSION, 1, [AUTH_TYPE["NO_AUTH"]])
+        event = GreetingRequest(VERSION, [AUTH_TYPE["NO_AUTH"]])
         data = write_greeting_request(event)
         expected_data = struct.pack("!BBB", 0x5, 0x1, 0x00)
         self.assertEqual(data, expected_data)
 
-        event = GreetingRequest(VERSION, 2, [AUTH_TYPE["NO_AUTH"], AUTH_TYPE["GSSAPI"]])
+        event = GreetingRequest(VERSION, [AUTH_TYPE["NO_AUTH"], AUTH_TYPE["GSSAPI"]])
         data = write_greeting_request(event)
         expected_data = struct.pack("!BB2B", 0x5, 0x2, 0x00, 0x01)
         self.assertEqual(data, expected_data)

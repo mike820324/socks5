@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import unittest
 import struct
-
+import ipaddress
 
 from socks5.reader import (
     read_greeting_request, read_greeting_response,
@@ -73,7 +73,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(request.version, 5)
         self.assertEqual(request.cmd, 1)
         self.assertEqual(request.atyp, 1)
-        self.assertEqual(request.addr, "127.0.0.1")
+        self.assertEqual(request.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(request.port, 8080)
 
     def test_read_request_ipv6(self):
@@ -85,7 +85,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(request.version, 5)
         self.assertEqual(request.cmd, 1)
         self.assertEqual(request.atyp, 4)
-        self.assertEqual(request.addr, u"::1")
+        self.assertEqual(request.addr, ipaddress.IPv6Address("::1"))
         self.assertEqual(request.port, 8080)
 
     def test_read_request_hostname(self):
@@ -108,7 +108,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(response.version, 5)
         self.assertEqual(response.status, 0)
         self.assertEqual(response.atyp, 1)
-        self.assertEqual(response.addr, "127.0.0.1")
+        self.assertEqual(response.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(response.port, 8080)
 
     def test_read_response_ipv6(self):
@@ -120,7 +120,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(response.version, 5)
         self.assertEqual(response.status, 0)
         self.assertEqual(response.atyp, 4)
-        self.assertEqual(response.addr, u"::1")
+        self.assertEqual(response.addr, ipaddress.IPv6Address("::1"))
         self.assertEqual(response.port, 8080)
 
     def test_read_response_hostname(self):

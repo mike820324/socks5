@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import unittest
 import struct
+import ipaddress
 
 from socks5.connection import (
     ServerConnection, ClientConnection,
@@ -64,7 +65,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("greeting_response")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -82,7 +83,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("auth_response")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -100,7 +101,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("response")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -108,7 +109,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("greeting_request")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -116,7 +117,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("auth_request")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -124,7 +125,7 @@ class TestServerConnection(unittest.TestCase):
         conn = ServerConnection()
         conn.machine.set_state("request")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
@@ -173,7 +174,7 @@ class TestServerConnection(unittest.TestCase):
         self.assertEqual(event.version, 5)
         self.assertEqual(event.cmd, 1)
         self.assertEqual(event.atyp, 1)
-        self.assertEqual(event.addr, "127.0.0.1")
+        self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.port, 8080)
 
     def test_recv_incorrect_state_greeting_response(self):
@@ -222,7 +223,7 @@ class TestClientConnection(unittest.TestCase):
         conn = ClientConnection()
         conn.machine.set_state("greeting_request")
 
-        event = GreetingRequest(VERSION, 1, (AUTH_TYPE["NO_AUTH"], ))
+        event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
         data = conn.send(event)
         expected_data = struct.pack("!BBB", 0x5, 0x1, 0x00)
         self.assertEqual(conn.state, "greeting_response")
@@ -352,7 +353,7 @@ class TestClientConnection(unittest.TestCase):
         self.assertEqual(event.version, 5)
         self.assertEqual(event.status, 0)
         self.assertEqual(event.atyp, 1)
-        self.assertEqual(event.addr, "127.0.0.1")
+        self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.port, 8080)
 
     def test_recv_incorrect_state_greeting_request(self):
