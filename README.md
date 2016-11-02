@@ -28,11 +28,11 @@ First thing first, we have to initiate a connection.
 You can initiate a connection by using the following code snippets.
 
 ```python
-from socks5 import ClientConnection, ServerConnection
-client_conn = ClientConnection()
+from socks5 import Connection
+client_conn = Connection(our_role="client")
 client_conn.initiate_connection()
 
-server_conn = ServerConnection()
+server_conn = Connection(our_role="server")
 server_conn.initiate_connection()
 ```
 
