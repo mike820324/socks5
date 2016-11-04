@@ -4,13 +4,14 @@ import unittest
 import struct
 import ipaddress
 
+from socks5.exception import ParserError
 from socks5.reader import (
     read_greeting_request, read_greeting_response,
     read_auth_request, read_auth_response, read_request,
     read_response)
+from socks5.events import NeedMoreData
 from socks5.events import GreetingRequest, GreetingResponse
 from socks5.events import Socks4Request, Socks4Response
-from socks5.reader import ParserError
 
 
 class TestReader(unittest.TestCase):
@@ -51,10 +52,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual(request.name, "Johnny")
         self.assertEqual(request.domainname, "www.google.com")
 
-    def test_greeting_request_failed_not_enough_data(self):
-        with self.assertRaises(ParserError):
-            read_greeting_request(
-                struct.pack("!BB2B", 0x5, 0x3, 0x00, 0x01))
+    def test_greeting_request_not_enough_data(self):
+        request = read_greeting_request(
+            struct.pack("!BB2B", 0x5, 0x3, 0x00, 0x01))
+        self.assertIsInstance(request, NeedMoreData)
 
     def test_greeting_request_failed_invalid_version(self):
         with self.assertRaises(ParserError):
@@ -75,10 +76,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual(response.port, 5580)
         self.assertEqual(response.addr, ipaddress.IPv4Address("127.0.0.1"))
 
-    def test_greeting_response_failed_not_enouch_data(self):
-        with self.assertRaises(ParserError):
-            read_greeting_response(
-                struct.pack("!B", 0x5))
+    def test_greeting_response_not_enouch_data(self):
+        event = read_greeting_response(
+            struct.pack("!B", 0x5))
+        self.assertIsInstance(event, NeedMoreData)
 
     def test_greeting_response_failed_incorrect_version(self):
         with self.assertRaises(ParserError):
@@ -91,10 +92,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual(auth_request.username, "user")
         self.assertEqual(auth_request.password, "password")
 
-    def test_auth_request_failed_not_enough_data(self):
-        with self.assertRaises(ParserError):
-            read_auth_request(
-                struct.pack("!B", 0x5))
+    def test_auth_request_not_enough_data(self):
+        event = read_auth_request(
+            struct.pack("!B", 0x5))
+        self.assertIsInstance(event, NeedMoreData)
 
     def test_auth_request_failed_incorrect_version(self):
         with self.assertRaises(ParserError):
@@ -106,10 +107,10 @@ class TestReader(unittest.TestCase):
             struct.pack("!BB", 0x5, 0x0))
         self.assertEqual(auth_response.status, 0)
 
-    def test_auth_response_failed_not_enough_data(self):
-        with self.assertRaises(ParserError):
-            read_auth_response(
-                struct.pack("!B", 0x5))
+    def test_auth_response_not_enough_data(self):
+        event = read_auth_response(
+            struct.pack("!B", 0x5))
+        self.assertIsInstance(event, NeedMoreData)
 
     def test_auth_response_failed_incorrect_version(self):
         with self.assertRaises(ParserError):
@@ -143,10 +144,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual(request.addr, "google.com")
         self.assertEqual(request.port, 8080)
 
-    def test_read_request_failed_not_enough_data(self):
-        with self.assertRaises(ParserError):
-            read_request(
-                struct.pack("!B", 0x5))
+    def test_read_request_not_enough_data(self):
+        event = read_request(
+            struct.pack("!B", 0x5))
+        self.assertIsInstance(event, NeedMoreData)
 
     def test_read_request_failed_incorrect_version(self):
         with self.assertRaises(ParserError):
@@ -180,10 +181,10 @@ class TestReader(unittest.TestCase):
         self.assertEqual(response.addr, "google.com")
         self.assertEqual(response.port, 8080)
 
-    def test_read_response_failed_not_enough_data(self):
-        with self.assertRaises(ParserError):
-            read_response(
-                struct.pack("!B", 0x5))
+    def test_read_response_not_enough_data(self):
+        event = read_response(
+            struct.pack("!B", 0x5))
+        self.assertIsInstance(event, NeedMoreData)
 
     def test_read_response_failed_incorrect_version(self):
         with self.assertRaises(ParserError):

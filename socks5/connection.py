@@ -2,14 +2,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from transitions import Machine
 
+from socks5.exception import ProtocolError
 from socks5.define import AUTH_TYPE
-from socks5.events import NeedMoreData
 from socks5 import reader
 from socks5 import writer
-
-
-class ProtocolError(Exception):
-    pass
 
 
 class _ClientConnection(object):
@@ -26,32 +22,24 @@ class _ClientConnection(object):
 
     def __init__(self):
         self._buffer = b""
-        self._current_event = None
         self.machine = Machine(
             model=self, states=self.states, initial='init')
 
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
 
-    def end_connection(self):
-        if self.state != "response":
-            raise ProtocolError
-
-        self.machine.set_state("end")
-
     def recv(self, data):
         if self.state not in ("greeting_response", "auth_response", "response"):
-            raise ProtocolError
+            raise ProtocolError("ClientConnection.recv: Incorrect state {}".format(self.state))
 
-        try:
-            self._buffer += data
-            _reader = getattr(reader, "read_" + self.state)
-            current_event = _reader(self._buffer)
+        self._buffer += data
+        _reader = getattr(reader, "read_" + self.state)
+        current_event = _reader(self._buffer)
 
-        except reader.ParserError:
-            return NeedMoreData()
-
-        self._buffer = b""
+        if current_event == 'NeedMoreData':
+            return current_event
+        else:
+            self._buffer = b""
 
         if self.state == 'greeting_response':
             if current_event == "GreetingResponse":
@@ -72,16 +60,16 @@ class _ClientConnection(object):
 
     def send(self, event):
         if self.state not in ("greeting_request", "auth_request", "request"):
-            raise ProtocolError
+            raise ProtocolError("ClientConnection.send: Incorrect state {}".format(self.state))
 
         if self.state == "greeting_request" and (event != "GreetingRequest" and event != "Socks4Request"):
-            raise ProtocolError
+            raise ProtocolError("ClientConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "auth_request" and event != "AuthRequest":
-            raise ProtocolError
+            raise ProtocolError("ClientConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "request" and event != "Request":
-            raise ProtocolError
+            raise ProtocolError("ClientConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_request":
@@ -110,30 +98,24 @@ class _ServerConnection(object):
 
     def __init__(self):
         self._buffer = b""
-        self._current_event = None
         self.machine = Machine(
             model=self, states=self.states, initial='init')
 
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
 
-    def end_connection(self):
-        if self.state != "response":
-            raise ProtocolError
-
-        self.machine.set_state("end")
-
     def recv(self, data):
         if self.state not in ("greeting_request", "auth_request", "request"):
-            raise ProtocolError
+            raise ProtocolError("ServerConnection.recv: Incorrect state {}".format(self.state))
 
-        try:
-            self._buffer += data
-            _reader = getattr(reader, "read_" + self.state)
-            current_event = _reader(self._buffer)
+        self._buffer += data
+        _reader = getattr(reader, "read_" + self.state)
+        current_event = _reader(self._buffer)
 
-        except reader.ParserError:
-            return NeedMoreData()
+        if current_event == "NeedMoreData":
+            return current_event
+        else:
+            self._buffer = b""
 
         if self.state == 'greeting_request':
             self.machine.set_state('greeting_response')
@@ -149,16 +131,16 @@ class _ServerConnection(object):
 
     def send(self, event):
         if self.state not in ("greeting_response", "auth_response", "response"):
-            raise ProtocolError
+            raise ProtocolError("ServerConnection.recv: Incorrect state {}".format(self.state))
 
         if self.state == "greeting_response" and (event != "GreetingResponse" and event != "Socks4Response"):
-            raise ProtocolError
+            raise ProtocolError("ServerConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "auth_response" and event != "AuthResponse":
-            raise ProtocolError
+            raise ProtocolError("ServerConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "response" and event != "Response":
-            raise ProtocolError
+            raise ProtocolError("ServerConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_response":
@@ -191,9 +173,6 @@ class Connection(object):
 
     def initiate_connection(self):
         self._conn.initiate_connection()
-
-    def end_connection(self):
-        self._conn.end_connection()
 
     def recv(self, data):
         return self._conn.recv(data)

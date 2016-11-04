@@ -4,7 +4,8 @@ import unittest
 import struct
 import ipaddress
 
-from socks5.connection import Connection, ProtocolError
+from socks5.exception import ProtocolError
+from socks5.connection import Connection
 
 from socks5.events import (
     NeedMoreData,
@@ -26,21 +27,9 @@ class TestServerConnection(unittest.TestCase):
         conn.initiate_connection()
         self.assertEqual(conn._conn.state, "greeting_request")
 
-    def test_end_connection(self):
-        conn = Connection(our_role="server")
-        conn._conn.machine.set_state("response")
-
-        conn.end_connection()
-        self.assertEqual(conn._conn.state, "end")
-
     def test_incorrect_role(self):
         with self.assertRaises(ValueError):
             Connection(our_role="yoyo")
-
-    def test_end_connection_incorrect_state(self):
-        conn = Connection(our_role="server")
-        with self.assertRaises(ProtocolError):
-            conn.end_connection()
 
     def test_send_greeting_response_socks4(self):
         conn = Connection(our_role="server")
@@ -228,18 +217,6 @@ class TestClientConnection(unittest.TestCase):
 
         conn.initiate_connection()
         self.assertEqual(conn._conn.state, "greeting_request")
-
-    def test_end_connection(self):
-        conn = Connection(our_role="client")
-        conn._conn.machine.set_state("response")
-
-        conn.end_connection()
-        self.assertEqual(conn._conn.state, "end")
-
-    def test_end_connection_incorrect_state(self):
-        conn = Connection(our_role="client")
-        with self.assertRaises(ProtocolError):
-            conn.end_connection()
 
     def test_send_in_greeting_request(self):
         conn = Connection(our_role="client")

@@ -4,7 +4,9 @@ import sys
 import construct
 
 from socks5 import data_structure
+from socks5.exception import ParserError
 from socks5.define import ADDR_TYPE
+from socks5.events import NeedMoreData
 from socks5.events import Socks4Request, Socks4Response
 from socks5.events import GreetingRequest, GreetingResponse
 from socks5.events import AuthRequest, AuthResponse
@@ -16,17 +18,13 @@ else:
     string_func = str
 
 
-class ParserError(Exception):
-    pass
-
-
 def read_greeting_request(data):
     try:
         parsed_data = dict(data_structure.GreetingRequest.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_greeting_request: Incorrect version.")
 
     if parsed_data["version"] == 5:
         parsed_data.pop("version")
@@ -47,9 +45,9 @@ def read_greeting_response(data):
     try:
         parsed_data = dict(data_structure.GreetingResponse.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_greeting_response: Incorrect version.")
 
     if parsed_data["version"] == 5:
         parsed_data.pop("version")
@@ -65,9 +63,9 @@ def read_auth_request(data):
     try:
         parsed_data = dict(data_structure.AuthRequest.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_auth_request: Incorrect version.")
 
     parsed_data.pop("version")
     parsed_data["username"] = string_func(parsed_data["username"], encoding="ascii")
@@ -80,9 +78,9 @@ def read_auth_response(data):
     try:
         parsed_data = dict(data_structure.AuthResponse.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_auth_response: Incorrect version.")
 
     parsed_data.pop("version")
     return AuthResponse(**parsed_data)
@@ -92,9 +90,9 @@ def read_request(data):
     try:
         parsed_data = dict(data_structure.Request.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_request: Incorrect version.")
 
     parsed_data.pop("version")
     if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
@@ -107,13 +105,12 @@ def read_response(data):
     try:
         parsed_data = dict(data_structure.Response.parse(data))
     except (construct.FieldError, construct.RangeError):
-        raise ParserError
+        return NeedMoreData()
     except construct.ValidationError:
-        raise ParserError
+        raise ParserError("read_response: Incorrect version.")
 
     parsed_data.pop("version")
     if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
         parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
-
 
     return Response(**parsed_data)
