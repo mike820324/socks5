@@ -8,7 +8,12 @@ It's a "bring-your-own-IO" library; that is socks5 module does not contain any n
 socks5 only deal with the parsing and state management of the socks5 connection,
 the underlying IO part is not cover in the internal code.
 
-This means that you can use socks5 in networking library that you prefer.
+Currently, socks5 module support the following protocol and rfc.
+
+- socks4
+- socks4a
+- socks5 : rfc 1928
+- socks5 username/password authentication: rfc 1929
 
 ## Installation:
 
@@ -121,6 +126,10 @@ event = client_conn.recv(raw_data)
 ```
 
 There are more realistic examples in the examples folder.
+
+## Future Works:
+
+- socks5 gssapi authentication: rfc 1961
 
 ## LICENSE:
 MIT
