@@ -91,8 +91,8 @@ There are seven types of event in socks5 which are,
 - Socks4Response
 - GreetingRequest
 - GreetingResponse
-- AuthRequest
-- AuthResponse
+- UsernamePasswordAuthRequest
+- UsernamePasswordAuthResponse
 - Request
 - Response
 - NeedMoreData
