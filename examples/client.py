@@ -4,7 +4,7 @@ import argparse
 import socket
 
 from socks5 import GreetingRequest, Request
-from socks5 import VERSION, AUTH_TYPE, REQ_COMMAND, ADDR_TYPE
+from socks5 import AUTH_TYPE, REQ_COMMAND, ADDR_TYPE
 from socks5 import Connection
 
 
@@ -20,7 +20,7 @@ def do_socks_protocol(sock):
     socks_conn = Connection(our_role="client")
     socks_conn.initiate_connection()
 
-    _event = GreetingRequest(VERSION, (AUTH_TYPE["NO_AUTH"], ))
+    _event = GreetingRequest((AUTH_TYPE["NO_AUTH"], ))
     print("sending event: {}".format(_event))
 
     _data = socks_conn.send(_event)
@@ -35,7 +35,7 @@ def do_socks_protocol(sock):
 
     print("receiving event: {}".format(_event))
 
-    _event = Request(VERSION, REQ_COMMAND["CONNECT"], ADDR_TYPE["DOMAINNAME"], "google.com", 80)
+    _event = Request(REQ_COMMAND["CONNECT"], ADDR_TYPE["DOMAINNAME"], "google.com", 80)
     print("sending event: {}".format(_event))
     _data = socks_conn.send(_event)
     sock.send(_data)

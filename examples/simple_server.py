@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from socks5 import GreetingResponse, Response
-from socks5 import VERSION, AUTH_TYPE, RESP_STATUS
+from socks5 import AUTH_TYPE, RESP_STATUS
 from socks5 import Connection
 import socket
 
@@ -23,7 +23,7 @@ while True:
 
     print(_event)
 
-    _event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
+    _event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
 
     print(_event)
     _data = socks_conn.send(_event)
@@ -36,7 +36,7 @@ while True:
             break
 
     print(_event)
-    _event = Response(VERSION, RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
+    _event = Response(RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
     print(_event)
     _data = socks_conn.send(_event)
     clientsock.send(_data)

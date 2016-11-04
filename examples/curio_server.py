@@ -9,8 +9,8 @@ License: MIT
 
 import argparse
 from curio import run, spawn, tcp_server
-from socks5 import Connection, GreetingResponse, Response
-from socks5 import VERSION, AUTH_TYPE, RESP_STATUS, ADDR_TYPE
+from socks5 import Connection, Socks4Response, GreetingResponse, Response
+from socks5 import AUTH_TYPE, RESP_STATUS, ADDR_TYPE
 
 
 async def socks5_handler(client, addr):
@@ -24,21 +24,28 @@ async def socks5_handler(client, addr):
     print("receiving event: {}".format(_event))
 
     # greeting response
-    event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
-    print("sending event: {}".format(event))
-    data = conn.send(event)
-    await client.send(data)
+    if _event == "GreetingRequest":
+        event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
+        print("sending event: {}".format(event))
+        data = conn.send(event)
+        await client.send(data)
 
-    # socks request
-    data = await client.recv(1024)
-    _event = conn.recv(data)
-    print("receiving event: {}".format(_event))
+        # socks request
+        data = await client.recv(1024)
+        _event = conn.recv(data)
+        print("receiving event: {}".format(_event))
 
-    # socks response
-    event = Response(VERSION, RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
-    print("sending event: {}".format(event))
-    data = conn.send(event)
-    await client.send(data)
+        # socks response
+        event = Response(RESP_STATUS["SUCCESS"], _event.atyp, _event.addr, _event.port)
+        print("sending event: {}".format(event))
+        data = conn.send(event)
+        await client.send(data)
+
+    elif _event == "Socks4Request":
+        event = Socks4Response(RESP_STATUS["REQUEST_GRANTED"], _event.addr, _event.port)
+        print("sending event: {}".format(event))
+        data = conn.send(event)
+        await client.send(data)
 
     print("socks end")
 

@@ -52,16 +52,16 @@ The following snippets shows how client send a greeting request to the server.
 
 ```python
 from socks5 import GreetingRequest, GreetingResponse
-from socks5 import VERSION, AUTH_TYPE
+from socks5 import AUTH_TYPE
 
-client_event = GreetingRequest(VERSION, [AUTH_TYPE["NO_AUTH"]])
+client_event = GreetingRequest([AUTH_TYPE["NO_AUTH"]])
 raw_data = client_conn.send(event)
 
 _event = server_conn.recv(raw_data)
 if AUTH_TYPE["NO_AUTH"] in server_event.auth_type:
-    server_event = GreetingResponse(VERSION, AUTH_TYPE["NO_AUTH"])
+    server_event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
 else:
-    server_event = GreetingResponse(VERSION, AUTH_TYPE["NO_SUPPORTED_AUTH_METHOD"])
+    server_event = GreetingResponse(AUTH_TYPE["NO_SUPPORTED_AUTH_METHOD"])
 
 raw_data = server_conn.send(server_event)
 
@@ -82,6 +82,8 @@ On the above example, we have also introducecd the GreetingRequest/GreetingRespo
 Event is a very important concept in socks5. An Event object abstract the socks5 raw data away.
 There are seven types of event in socks5 which are,
 
+- Socks4Request
+- Socks4Response
 - GreetingRequest
 - GreetingResponse
 - AuthRequest
@@ -110,7 +112,7 @@ sock.connect(host, port)
 
 client_conn = ClientConnection()
 client_conn.initiate_connection()
-client_event = GreetingRequest(VERSION, [AUTH_TYPE["NO_AUTH"]])
+client_event = GreetingRequest([AUTH_TYPE["NO_AUTH"]])
 raw_data = client_conn.send(event)
 sock.send(raw_data)
 
