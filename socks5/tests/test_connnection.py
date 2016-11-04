@@ -8,10 +8,9 @@ from socks5.exception import ProtocolError
 from socks5.connection import Connection
 
 from socks5.events import (
-    NeedMoreData,
     Socks4Request, Socks4Response,
     GreetingRequest, GreetingResponse,
-    AuthRequest, AuthResponse,
+    UsernamePasswordAuthRequest, UsernamePasswordAuthResponse,
     Request, Response)
 
 from socks5.define import (
@@ -53,7 +52,7 @@ class TestServerConnection(unittest.TestCase):
         self.assertEqual(conn._conn.state, "request")
         self.assertEqual(data, expected_data)
 
-    def test_send_greeting_response_with_auth(self):
+    def test_send_greeting_response_with_rfc1929_auth(self):
         conn = Connection(our_role="server")
         conn._conn.machine.set_state("greeting_response")
 
@@ -61,8 +60,16 @@ class TestServerConnection(unittest.TestCase):
         data = conn.send(event)
         expected_data = struct.pack("!BB", 0x5, 0x2)
 
-        self.assertEqual(conn._conn.state, "auth_request")
+        self.assertEqual(conn._conn.state, "rfc1929_auth_request")
         self.assertEqual(data, expected_data)
+
+    def test_send_greeting_response_with_unsupported_auth(self):
+        conn = Connection(our_role="server")
+        conn._conn.machine.set_state("greeting_response")
+        event = GreetingResponse(AUTH_TYPE["GSSAPI"])
+
+        with self.assertRaises(ProtocolError):
+            conn.send(event)
 
     def test_send_greeting_response_incorrect_event(self):
         conn = Connection(our_role="server")
@@ -72,19 +79,19 @@ class TestServerConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
-    def test_send_auth_response(self):
+    def test_send_rfc1929_auth_response(self):
         conn = Connection(our_role="server")
-        conn._conn.machine.set_state("auth_response")
+        conn._conn.machine.set_state("rfc1929_auth_response")
 
-        event = AuthResponse(RESP_STATUS["SUCCESS"])
+        event = UsernamePasswordAuthResponse(RESP_STATUS["SUCCESS"])
         data = conn.send(event)
-        expected_data = struct.pack("!BB", 0x5, 0x0)
+        expected_data = struct.pack("!BB", 0x1, 0x0)
         self.assertEqual(conn._conn.state, "request")
         self.assertEqual(data, expected_data)
 
-    def test_send_auth_response_incorrect_event(self):
+    def test_send_rfc1929_auth_response_incorrect_event(self):
         conn = Connection(our_role="server")
-        conn._conn.machine.set_state("auth_response")
+        conn._conn.machine.set_state("rfc1929_auth_response")
 
         event = GreetingRequest((AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
@@ -116,9 +123,9 @@ class TestServerConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
-    def test_send_incorrect_state_auth_request(self):
+    def test_send_incorrect_state_rfc1929_auth_request(self):
         conn = Connection(our_role="server")
-        conn._conn.machine.set_state("auth_request")
+        conn._conn.machine.set_state("rfc1929_auth_request")
 
         event = GreetingRequest((AUTH_TYPE["NO_AUTH"], ))
         with self.assertRaises(ProtocolError):
@@ -164,14 +171,14 @@ class TestServerConnection(unittest.TestCase):
         self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.name, "Johnny")
 
-    def test_recv_in_auth_request(self):
+    def test_recv_in_rfc1929_auth_request(self):
         conn = Connection(our_role="server")
-        conn._conn.machine.set_state("auth_request")
+        conn._conn.machine.set_state("rfc1929_auth_request")
 
-        raw_data = struct.pack("!BB4sB8s", 0x5, 0x4, b"user", 0x8, b"password")
+        raw_data = struct.pack("!BB4sB8s", 0x1, 0x4, b"user", 0x8, b"password")
         event = conn.recv(raw_data)
-        self.assertEqual(conn._conn.state, "auth_response")
-        self.assertEqual(event, "AuthRequest")
+        self.assertEqual(conn._conn.state, "rfc1929_auth_response")
+        self.assertEqual(event, "UsernamePasswordAuthRequest")
         self.assertEqual(event.username, "user")
         self.assertEqual(event.password, "password")
 
@@ -195,9 +202,9 @@ class TestServerConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.recv(b"")
 
-    def test_recv_incorrect_state_auth_response(self):
+    def test_recv_incorrect_state_rfc1929_auth_response(self):
         conn = Connection(our_role="server")
-        conn._conn.machine.set_state("auth_response")
+        conn._conn.machine.set_state("rfc1929_auth_response")
 
         with self.assertRaises(ProtocolError):
             conn.recv(b"")
@@ -246,19 +253,19 @@ class TestClientConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
-    def test_send_in_auth_request(self):
+    def test_send_in_rfc1929_auth_request(self):
         conn = Connection(our_role="client")
-        conn._conn.machine.set_state("auth_request")
+        conn._conn.machine.set_state("rfc1929_auth_request")
 
-        event = AuthRequest("user", "password")
+        event = UsernamePasswordAuthRequest("user", "password")
         data = conn.send(event)
-        expected_data = struct.pack("!BB4sB8s", 0x5, 0x4, b"user", 0x8, b"password")
-        self.assertEqual(conn._conn.state, "auth_response")
+        expected_data = struct.pack("!BB4sB8s", 0x1, 0x4, b"user", 0x8, b"password")
+        self.assertEqual(conn._conn.state, "rfc1929_auth_response")
         self.assertEqual(data, expected_data)
 
-    def test_send_in_auth_request_incorrect_event(self):
+    def test_send_in_rfc1929_auth_request_incorrect_event(self):
         conn = Connection(our_role="client")
-        conn._conn.machine.set_state("auth_request")
+        conn._conn.machine.set_state("rfc1929_auth_request")
 
         event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
         with self.assertRaises(ProtocolError):
@@ -290,9 +297,9 @@ class TestClientConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.send(event)
 
-    def test_send_incorrect_state_auth_response(self):
+    def test_send_incorrect_state_rfc1929_auth_response(self):
         conn = Connection(our_role="client")
-        conn._conn.machine.set_state("auth_response")
+        conn._conn.machine.set_state("rfc1929_auth_response")
 
         event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
         with self.assertRaises(ProtocolError):
@@ -340,25 +347,33 @@ class TestClientConnection(unittest.TestCase):
         self.assertEqual(event.port, 5580)
         self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
 
-    def test_recv_in_greeting_response_with_auth(self):
+    def test_recv_in_greeting_response_with_rfc1929_auth(self):
+        conn = Connection(our_role="client")
+        conn._conn.machine.set_state("greeting_response")
+
+        raw_data = struct.pack("!BB", 0x5, 0x2)
+        event = conn.recv(raw_data)
+
+        self.assertEqual(conn._conn.state, "rfc1929_auth_request")
+        self.assertEqual(event, "GreetingResponse")
+        self.assertEqual(event.auth_type, 2)
+
+    def test_recv_in_greeting_response_with_unsupported_auth(self):
         conn = Connection(our_role="client")
         conn._conn.machine.set_state("greeting_response")
 
         raw_data = struct.pack("!BB", 0x5, 0x1)
-        event = conn.recv(raw_data)
+        with self.assertRaises(ProtocolError):
+            conn.recv(raw_data)
 
-        self.assertEqual(conn._conn.state, "auth_request")
-        self.assertEqual(event, "GreetingResponse")
-        self.assertEqual(event.auth_type, 1)
-
-    def test_recv_in_auth_response(self):
+    def test_recv_in_rfc1929_auth_response(self):
         conn = Connection(our_role="client")
-        conn._conn.machine.set_state("auth_response")
+        conn._conn.machine.set_state("rfc1929_auth_response")
 
-        raw_data = struct.pack("!BB", 0x5, 0x0)
+        raw_data = struct.pack("!BB", 0x1, 0x0)
         event = conn.recv(raw_data)
         self.assertEqual(conn._conn.state, "request")
-        self.assertEqual(event, "AuthResponse")
+        self.assertEqual(event, "UsernamePasswordAuthResponse")
         self.assertEqual(event.status, 0)
 
     def test_recv_in_response(self):
@@ -382,9 +397,9 @@ class TestClientConnection(unittest.TestCase):
         with self.assertRaises(ProtocolError):
             conn.recv(raw_data)
 
-    def test_recv_incorrect_state_auth_request(self):
+    def test_recv_incorrect_state_rfc1929_auth_request(self):
         conn = Connection(our_role="client")
-        conn._conn.machine.set_state("auth_request")
+        conn._conn.machine.set_state("rfc1929_auth_request")
 
         raw_data = b""
         with self.assertRaises(ProtocolError):
