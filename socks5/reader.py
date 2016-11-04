@@ -9,7 +9,7 @@ from socks5.define import ADDR_TYPE
 from socks5.events import NeedMoreData
 from socks5.events import Socks4Request, Socks4Response
 from socks5.events import GreetingRequest, GreetingResponse
-from socks5.events import AuthRequest, AuthResponse
+from socks5.events import UsernamePasswordAuthRequest, UsernamePasswordAuthResponse
 from socks5.events import Request, Response
 
 if sys.version_info.major <= 2:
@@ -59,9 +59,9 @@ def read_greeting_response(data):
         return Socks4Response(**parsed_data)
 
 
-def read_auth_request(data):
+def read_rfc1929_auth_request(data):
     try:
-        parsed_data = dict(data_structure.AuthRequest.parse(data))
+        parsed_data = dict(data_structure.UsernamePasswordAuthRequest.parse(data))
     except (construct.FieldError, construct.RangeError):
         return NeedMoreData()
     except construct.ValidationError:
@@ -71,19 +71,19 @@ def read_auth_request(data):
     parsed_data["username"] = string_func(parsed_data["username"], encoding="ascii")
     parsed_data["password"] = string_func(parsed_data["password"], encoding="ascii")
 
-    return AuthRequest(**parsed_data)
+    return UsernamePasswordAuthRequest(**parsed_data)
 
 
-def read_auth_response(data):
+def read_rfc1929_auth_response(data):
     try:
-        parsed_data = dict(data_structure.AuthResponse.parse(data))
+        parsed_data = dict(data_structure.UsernamePasswordAuthResponse.parse(data))
     except (construct.FieldError, construct.RangeError):
         return NeedMoreData()
     except construct.ValidationError:
         raise ParserError("read_auth_response: Incorrect version.")
 
     parsed_data.pop("version")
-    return AuthResponse(**parsed_data)
+    return UsernamePasswordAuthResponse(**parsed_data)
 
 
 def read_request(data):

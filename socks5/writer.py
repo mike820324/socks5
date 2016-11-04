@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import ipaddress
 from socks5.define import ADDR_TYPE
 from socks5.data_structure import GreetingRequest, GreetingResponse
-from socks5.data_structure import AuthRequest, AuthResponse
+from socks5.data_structure import UsernamePasswordAuthRequest, UsernamePasswordAuthResponse
 from socks5.data_structure import Request, Response
 
 
@@ -34,20 +34,20 @@ def write_greeting_response(event):
     return GreetingResponse.build(event_dict)
 
 
-def write_auth_request(event):
+def write_rfc1929_auth_request(event):
     event_dict = event.__dict__
 
-    event_dict["version"] = 5
+    event_dict["version"] = 1
     event_dict["username"] = event.username.encode("ascii")
     event_dict["password"] = event.password.encode("ascii")
-    return AuthRequest.build(event_dict)
+    return UsernamePasswordAuthRequest.build(event_dict)
 
 
-def write_auth_response(event):
+def write_rfc1929_auth_response(event):
     event_dict = event.__dict__
 
-    event_dict["version"] = 5
-    return AuthResponse.build(event_dict)
+    event_dict["version"] = 1
+    return UsernamePasswordAuthResponse.build(event_dict)
 
 
 def write_request(event):

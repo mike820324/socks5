@@ -194,7 +194,7 @@ class GreetingResponse(object):
         return "SOCKSv5 Greeting Response: Auth Type : {0}".format(self.auth_type)
 
 
-class AuthRequest(object):
+class UsernamePasswordAuthRequest(object):
     """
     This event represent the socks5 auth request.
 
@@ -231,7 +231,7 @@ class AuthRequest(object):
         >>> event.password == "password"
         True
     """
-    event_type = "AuthRequest"
+    event_type = "UsernamePasswordAuthRequest"
 
     def __init__(self, username, password):
         if not isinstance(username, string_func) or not isinstance(password, string_func):
@@ -253,7 +253,7 @@ class AuthRequest(object):
         return "SOCKSv5 Auth Request: username: {username}, password: {password}".format(**self.__dict__)
 
 
-class AuthResponse(object):
+class UsernamePasswordAuthResponse(object):
     """
     This event represent the socks5 auth response.
 
@@ -275,7 +275,7 @@ class AuthResponse(object):
         >>> event.status == 0
         True
     """
-    event_type = "AuthResponse"
+    event_type = "UsernamePasswordAuthResponse"
 
     def __init__(self, status):
         if status not in RESP_STATUS.values():
