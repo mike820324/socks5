@@ -1,34 +1,59 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import ipaddress
-from socks5 import ADDR_TYPE
+from socks5.define import ADDR_TYPE
 from socks5.data_structure import GreetingRequest, GreetingResponse
 from socks5.data_structure import AuthRequest, AuthResponse
 from socks5.data_structure import Request, Response
 
 
 def write_greeting_request(event):
-    return GreetingRequest.build(event.__dict__)
+    event_dict = event.__dict__
+
+    if event == "GreetingRequest":
+        event_dict["version"] = 5
+    if event == "Socks4Request":
+        event_dict["version"] = 4
+        event_dict["addr"] = int(event.addr)
+        event_dict["name"] = event.name.encode("ascii")
+        event_dict["domainname"] = event.domainname.encode("idna")
+
+    return GreetingRequest.build(event_dict)
 
 
 def write_greeting_response(event):
-    return GreetingResponse.build(event.__dict__)
+    event_dict = event.__dict__
+
+    if event == "GreetingResponse":
+        event_dict["version"] = 5
+    if event == "Socks4Response":
+        # NOTE: socksv4 will have a null byte in front
+        event_dict["version"] = 0
+        event_dict["addr"] = int(event.addr)
+
+    return GreetingResponse.build(event_dict)
 
 
 def write_auth_request(event):
     event_dict = event.__dict__
+
+    event_dict["version"] = 5
     event_dict["username"] = event.username.encode("ascii")
     event_dict["password"] = event.password.encode("ascii")
     return AuthRequest.build(event_dict)
 
 
 def write_auth_response(event):
-    return AuthResponse.build(event.__dict__)
+    event_dict = event.__dict__
+
+    event_dict["version"] = 5
+    return AuthResponse.build(event_dict)
 
 
 def write_request(event):
     event_dict = event.__dict__
 
+    event_dict["version"] = 5
     if event.atyp == ADDR_TYPE["IPV4"]:
         event_dict["addr"] = int(ipaddress.IPv4Address(event.addr))
 
@@ -44,6 +69,7 @@ def write_request(event):
 def write_response(event):
     event_dict = event.__dict__
 
+    event_dict["version"] = 5
     if event.atyp == ADDR_TYPE["IPV4"]:
         event_dict["addr"] = int(ipaddress.IPv4Address(event.addr))
 

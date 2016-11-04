@@ -54,10 +54,13 @@ class _ClientConnection(object):
         self._buffer = b""
 
         if self.state == 'greeting_response':
-            if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
-                self.machine.set_state('request')
-            else:
-                self.machine.set_state('auth_request')
+            if current_event == "GreetingResponse":
+                if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
+                    self.machine.set_state('request')
+                else:
+                    self.machine.set_state('auth_request')
+            elif current_event == "Socks4Response":
+                self.machine.set_state("end")
 
         elif self.state == 'auth_response':
             self.machine.set_state('request')
@@ -71,7 +74,7 @@ class _ClientConnection(object):
         if self.state not in ("greeting_request", "auth_request", "request"):
             raise ProtocolError
 
-        if self.state == "greeting_request" and event != "GreetingRequest":
+        if self.state == "greeting_request" and (event != "GreetingRequest" and event != "Socks4Request"):
             raise ProtocolError
 
         if self.state == "auth_request" and event != "AuthRequest":
@@ -148,7 +151,7 @@ class _ServerConnection(object):
         if self.state not in ("greeting_response", "auth_response", "response"):
             raise ProtocolError
 
-        if self.state == "greeting_response" and event != "GreetingResponse":
+        if self.state == "greeting_response" and (event != "GreetingResponse" and event != "Socks4Response"):
             raise ProtocolError
 
         if self.state == "auth_response" and event != "AuthResponse":
@@ -159,10 +162,14 @@ class _ServerConnection(object):
 
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_response":
-            if event.auth_type == AUTH_TYPE["NO_AUTH"]:
-                self.machine.set_state("request")
-            else:
-                self.machine.set_state("auth_request")
+            if event == "GreetingResponse":
+                if event.auth_type == AUTH_TYPE["NO_AUTH"]:
+                    self.machine.set_state("request")
+                else:
+                    self.machine.set_state("auth_request")
+
+            elif event == "Socks4Response":
+                self.machine.set_state("end")
 
         if self.state == "auth_response":
             self.machine.set_state("request")
@@ -181,9 +188,6 @@ class Connection(object):
             self._conn = _ClientConnection()
         else:
             raise ValueError("unknonw role {}".format(our_role))
-
-        # self.machine = Machine(
-        #     model=self, states=self._conn.states, initial='init')
 
     def initiate_connection(self):
         self._conn.initiate_connection()

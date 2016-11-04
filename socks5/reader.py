@@ -5,6 +5,7 @@ import construct
 
 from socks5 import data_structure
 from socks5.define import ADDR_TYPE
+from socks5.events import Socks4Request, Socks4Response
 from socks5.events import GreetingRequest, GreetingResponse
 from socks5.events import AuthRequest, AuthResponse
 from socks5.events import Request, Response
@@ -24,10 +25,22 @@ def read_greeting_request(data):
         parsed_data = dict(data_structure.GreetingRequest.parse(data))
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
 
-    parsed_data = dict(parsed_data)
-    parsed_data.pop("nmethod")
-    return GreetingRequest(**parsed_data)
+    if parsed_data["version"] == 5:
+        parsed_data.pop("version")
+        parsed_data.pop("nmethod")
+        return GreetingRequest(**parsed_data)
+
+    elif parsed_data["version"] == 4:
+        parsed_data.pop("version")
+        parsed_data["name"] = string_func(parsed_data["name"], encoding="ascii")
+        if parsed_data["domainname"]:
+            parsed_data["domainname"] = string_func(parsed_data["domainname"], encoding="ascii")
+        else:
+            parsed_data.pop("domainname")
+        return Socks4Request(**parsed_data)
 
 
 def read_greeting_response(data):
@@ -35,17 +48,30 @@ def read_greeting_response(data):
         parsed_data = dict(data_structure.GreetingResponse.parse(data))
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
 
-    return GreetingResponse(**parsed_data)
+    if parsed_data["version"] == 5:
+        parsed_data.pop("version")
+        return GreetingResponse(**parsed_data)
+
+    # NOTE: socksv4 will have a null byte in front
+    elif parsed_data["version"] == 0x0:
+        parsed_data.pop("version")
+        return Socks4Response(**parsed_data)
 
 
 def read_auth_request(data):
     try:
         parsed_data = dict(data_structure.AuthRequest.parse(data))
-        parsed_data["username"] = string_func(parsed_data["username"], encoding="ascii")
-        parsed_data["password"] = string_func(parsed_data["password"], encoding="ascii")
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
+
+    parsed_data.pop("version")
+    parsed_data["username"] = string_func(parsed_data["username"], encoding="ascii")
+    parsed_data["password"] = string_func(parsed_data["password"], encoding="ascii")
 
     return AuthRequest(**parsed_data)
 
@@ -55,18 +81,24 @@ def read_auth_response(data):
         parsed_data = dict(data_structure.AuthResponse.parse(data))
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
 
+    parsed_data.pop("version")
     return AuthResponse(**parsed_data)
 
 
 def read_request(data):
     try:
         parsed_data = dict(data_structure.Request.parse(data))
-        if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
-            parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
-
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
+
+    parsed_data.pop("version")
+    if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
+        parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
 
     return Request(**parsed_data)
 
@@ -74,10 +106,14 @@ def read_request(data):
 def read_response(data):
     try:
         parsed_data = dict(data_structure.Response.parse(data))
-        if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
-            parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
-
     except (construct.FieldError, construct.RangeError):
         raise ParserError
+    except construct.ValidationError:
+        raise ParserError
+
+    parsed_data.pop("version")
+    if parsed_data["atyp"] == ADDR_TYPE["DOMAINNAME"]:
+        parsed_data["addr"] = string_func(parsed_data["addr"], encoding="ascii")
+
 
     return Response(**parsed_data)

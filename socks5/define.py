@@ -1,7 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-VERSION = 0x05
-
 AUTH_TYPE = {
     "NO_AUTH": 0x0,
     "GSSAPI": 0x1,
@@ -16,6 +14,7 @@ REQ_COMMAND = {
 }
 
 RESP_STATUS = {
+    # socksv5 response status
     "SUCCESS": 0x0,
     "GENRAL_FAILURE": 0x01,
     "CONNECTION_NOT_ALLOWED": 0x02,
@@ -25,6 +24,13 @@ RESP_STATUS = {
     "TTL_EXPIRED": 0x06,
     "COMMAND_NOT_SUPPORTED": 0x07,
     "ADDRESS_TYPE_NOT_SUPPORTED": 0x08,
+
+    # socksv4/socksv4a response status
+    "REQUEST_GRANTED": 0x5a,
+    "REQUEST_REJECTED": 0x5b,
+    "REQUEST_FAIELD_NO_IDENTD": 0x5c,
+    "REQUEST_FAIELD_IDENTD_AUTH_FAIL": 0x5d
+
 }
 
 ADDR_TYPE = {

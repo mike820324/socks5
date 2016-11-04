@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from construct import this
-from construct import Struct, Enum, Switch, Array
+from construct import this, If, Switch, OneOf
+from construct import Struct, Enum, Array, Embedded
 from construct import Byte, BytesInteger, Int8ub, Int16ub, Padding
-from construct import PascalString
+from construct import PascalString, CString
 
 ReqCommand = Enum(
     Byte,
@@ -32,30 +32,64 @@ AddrType = Enum(
     IPV6=0x04
 )
 
+Requestv4 = Struct(
+    "cmd" / Byte,
+    "port" / Int16ub,
+    "addr" / BytesInteger(4),
+    "name" / CString(),
+    "domainname" / If(this.addr == 1, CString())
+)
+
+Responsev4 = Struct(
+    "status" / Byte,
+    "port" / Int16ub,
+    "addr" / BytesInteger(4),
+)
+
 GreetingRequest = Struct(
-    "version" / Int8ub,
-    "nmethod" / Int8ub,
-    "methods" / Array(this.nmethod, Byte)
+    "version" / OneOf(Int8ub, [4, 5]),
+    Embedded(
+        Switch(
+            this.version,
+            {
+                0x4: Requestv4,
+                0x5: Struct(
+                    "nmethod" / Int8ub,
+                    "methods" / Array(this.nmethod, Byte)
+                )
+            }
+        )
+    )
 )
 
 GreetingResponse = Struct(
-    "version" / Int8ub,
-    "auth_type" / Int8ub
+    "version" / OneOf(Int8ub, [0, 5]),
+    Embedded(
+        Switch(
+            this.version,
+            {
+                0x0: Responsev4,
+                0x5: Struct(
+                    "auth_type" / Int8ub
+                )
+            }
+        )
+    )
 )
 
 AuthRequest = Struct(
-    "version" / Int8ub,
+    "version" / OneOf(Int8ub, [5]),
     "username" / PascalString(Byte),
     "password" / PascalString(Byte)
 )
 
 AuthResponse = Struct(
-    "version" / Int8ub,
+    "version" / OneOf(Int8ub, [5]),
     "status" / Byte
 )
 
 Request = Struct(
-    "version" / Int8ub,
+    "version" / OneOf(Int8ub, [5]),
     "cmd" / Byte,
     Padding(1),
     "atyp" / Byte,
@@ -69,8 +103,9 @@ Request = Struct(
     ),
     "port" / Int16ub
 )
+
 Response = Struct(
-    "version" / Int8ub,
+    "version" / OneOf(Int8ub, [5]),
     "status" / Byte,
     Padding(1),
     "atyp" / Byte,
