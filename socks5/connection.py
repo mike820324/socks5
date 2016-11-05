@@ -13,8 +13,7 @@ class _ClientConnection(object):
         'init',
         'greeting_request',
         'greeting_response',
-        'rfc1929_auth_request',
-        'rfc1929_auth_response',
+        'auth_inprogress',
         'request',
         'response',
         'end'
@@ -28,8 +27,13 @@ class _ClientConnection(object):
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
 
+    def auth_end(self):
+        if self.state != "auth_inprogress":
+            raise ProtocolError("ClientConnection.auth_end: Incorrect state {}".format(self.state))
+        self.machine.set_state("request")
+
     def recv(self, data):
-        if self.state not in ("greeting_response", "rfc1929_auth_response", "response"):
+        if self.state not in ("greeting_response", "response"):
             raise ProtocolError("ClientConnection.recv: Incorrect state {}".format(self.state))
 
         self._buffer += data
@@ -45,17 +49,13 @@ class _ClientConnection(object):
             if current_event == "GreetingResponse":
                 if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
                     self.machine.set_state('request')
-                elif current_event.auth_type == AUTH_TYPE["USERNAME_PASSWD"]:
-                    self.machine.set_state('rfc1929_auth_request')
+                elif current_event.auth_type == AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]:
+                    self.machine.set_state("end")
                 else:
-                    raise ProtocolError(
-                        "ClientConnection.recv: unsupported auth method {}".format(current_event.auth_type))
+                    self.machine.set_state('auth_inprogress')
 
             elif current_event == "Socks4Response":
                 self.machine.set_state("end")
-
-        elif self.state == 'rfc1929_auth_response':
-            self.machine.set_state('request')
 
         elif self.state == 'response':
             self.machine.set_state('end')
@@ -63,13 +63,10 @@ class _ClientConnection(object):
         return current_event
 
     def send(self, event):
-        if self.state not in ("greeting_request", "rfc1929_auth_request", "request"):
+        if self.state not in ("greeting_request", "request"):
             raise ProtocolError("ClientConnection.send: Incorrect state {}".format(self.state))
 
         if self.state == "greeting_request" and (event != "GreetingRequest" and event != "Socks4Request"):
-            raise ProtocolError("ClientConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
-
-        if self.state == "rfc1929_auth_request" and event != "UsernamePasswordAuthRequest":
             raise ProtocolError("ClientConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "request" and event != "Request":
@@ -78,9 +75,6 @@ class _ClientConnection(object):
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_request":
             self.machine.set_state("greeting_response")
-
-        if self.state == "rfc1929_auth_request":
-            self.machine.set_state("rfc1929_auth_response")
 
         if self.state == "request":
             self.machine.set_state("response")
@@ -93,8 +87,7 @@ class _ServerConnection(object):
         'init',
         'greeting_request',
         'greeting_response',
-        'rfc1929_auth_request',
-        'rfc1929_auth_response',
+        'auth_inprogress',
         'request',
         'response',
         'end'
@@ -108,8 +101,13 @@ class _ServerConnection(object):
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
 
+    def auth_end(self):
+        if self.state != "auth_inprogress":
+            raise ProtocolError("ServerConnection.auth_end: Incorrect state {}".format(self.state))
+        self.machine.set_state("request")
+
     def recv(self, data):
-        if self.state not in ("greeting_request", "rfc1929_auth_request", "request"):
+        if self.state not in ("greeting_request", "request"):
             raise ProtocolError("ServerConnection.recv: Incorrect state {}".format(self.state))
 
         self._buffer += data
@@ -124,9 +122,6 @@ class _ServerConnection(object):
         if self.state == 'greeting_request':
             self.machine.set_state('greeting_response')
 
-        elif self.state == 'rfc1929_auth_request':
-            self.machine.set_state('rfc1929_auth_response')
-
         elif self.state == 'request':
             self.machine.set_state('response')
 
@@ -134,13 +129,10 @@ class _ServerConnection(object):
         return current_event
 
     def send(self, event):
-        if self.state not in ("greeting_response", "rfc1929_auth_response", "response"):
+        if self.state not in ("greeting_response", "response"):
             raise ProtocolError("ServerConnection.recv: Incorrect state {}".format(self.state))
 
         if self.state == "greeting_response" and (event != "GreetingResponse" and event != "Socks4Response"):
-            raise ProtocolError("ServerConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
-
-        if self.state == "rfc1929_auth_response" and event != "UsernamePasswordAuthResponse":
             raise ProtocolError("ServerConnection.send: Incorrect event {0} in state: {1}".format(event, self.state))
 
         if self.state == "response" and event != "Response":
@@ -151,17 +143,13 @@ class _ServerConnection(object):
             if event == "GreetingResponse":
                 if event.auth_type == AUTH_TYPE["NO_AUTH"]:
                     self.machine.set_state("request")
-                elif event.auth_type == AUTH_TYPE["USERNAME_PASSWD"]:
-                    self.machine.set_state("rfc1929_auth_request")
+                elif event.auth_type == AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]:
+                    self.machine.set_state("end")
                 else:
-                    raise ProtocolError(
-                        "ServerConnection.send: unsupported auth method {}".format(event.auth_type))
+                    self.machine.set_state("auth_inprogress")
 
             elif event == "Socks4Response":
                 self.machine.set_state("end")
-
-        if self.state == "rfc1929_auth_response":
-            self.machine.set_state("request")
 
         if self.state == "response":
             self.machine.set_state("end")
@@ -179,6 +167,9 @@ class Connection(object):
 
     def initiate_connection(self):
         self._conn.initiate_connection()
+
+    def auth_end(self):
+        self._conn.auth_end()
 
     def recv(self, data):
         return self._conn.recv(data)

@@ -77,17 +77,6 @@ GreetingResponse = Struct(
     )
 )
 
-UsernamePasswordAuthRequest = Struct(
-    "version" / OneOf(Int8ub, [1]),
-    "username" / PascalString(Byte),
-    "password" / PascalString(Byte)
-)
-
-UsernamePasswordAuthResponse = Struct(
-    "version" / OneOf(Int8ub, [1]),
-    "status" / Byte
-)
-
 Request = Struct(
     "version" / OneOf(Int8ub, [5]),
     "cmd" / Byte,
