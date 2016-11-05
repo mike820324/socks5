@@ -4,8 +4,8 @@ from transitions import Machine
 
 from socks5.exception import ProtocolError
 from socks5.define import AUTH_TYPE
-from socks5 import reader
-from socks5 import writer
+from socks5 import _reader as reader
+from socks5 import _writer as writer
 
 
 class _ClientConnection(object):

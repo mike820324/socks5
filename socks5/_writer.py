@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import ipaddress
 from socks5.define import ADDR_TYPE
-from socks5.data_structure import GreetingRequest, GreetingResponse
-from socks5.data_structure import Request, Response
+from socks5._data_structure import GreetingRequest, GreetingResponse
+from socks5._data_structure import Request, Response
 
 
 def write_greeting_request(event):

@@ -12,7 +12,7 @@ from socks5.define import (
     REQ_COMMAND, AUTH_TYPE,
     RESP_STATUS, ADDR_TYPE)
 
-from socks5.writer import (
+from socks5._writer import (
     write_greeting_request, write_greeting_response,
     write_request, write_response)
 

@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 import construct
 
-from socks5 import data_structure
+from socks5 import _data_structure as data_structure
 from socks5.exception import ParserError
 from socks5.define import ADDR_TYPE
 from socks5.events import NeedMoreData

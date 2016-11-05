@@ -9,7 +9,7 @@ from socks5.events import NeedMoreData
 from socks5.events import GreetingRequest, GreetingResponse
 from socks5.events import Socks4Request, Socks4Response
 
-from socks5.reader import (
+from socks5._reader import (
     read_greeting_request, read_greeting_response,
     read_request, read_response)
 
