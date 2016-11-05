@@ -3,20 +3,18 @@ import unittest
 import struct
 
 
-from socks5.writer import (
-    write_greeting_request, write_greeting_response,
-    write_rfc1929_auth_request, write_rfc1929_auth_response, write_request,
-    write_response)
-
 from socks5.events import (
     Socks4Request, Socks4Response,
     GreetingRequest, GreetingResponse,
-    UsernamePasswordAuthRequest, UsernamePasswordAuthResponse,
     Request, Response)
 
 from socks5.define import (
     REQ_COMMAND, AUTH_TYPE,
     RESP_STATUS, ADDR_TYPE)
+
+from socks5.writer import (
+    write_greeting_request, write_greeting_response,
+    write_request, write_response)
 
 
 class TestWriter(unittest.TestCase):
@@ -56,18 +54,6 @@ class TestWriter(unittest.TestCase):
         data = write_greeting_response(event)
 
         expected_data = struct.pack("!BBH4B", 0, 0x5a, 5580, 127, 0, 0, 1)
-        self.assertEqual(data, expected_data)
-
-    def test_rfc1929_auth_request(self):
-        event = UsernamePasswordAuthRequest("user", "password")
-        data = write_rfc1929_auth_request(event)
-        expected_data = struct.pack("!BB4sB8s", 0x1, 0x4, b"user", 0x8, b"password")
-        self.assertEqual(data, expected_data)
-
-    def test_rfc1929_auth_response(self):
-        event = UsernamePasswordAuthResponse(RESP_STATUS["SUCCESS"])
-        data = write_rfc1929_auth_response(event)
-        expected_data = struct.pack("!BB", 0x1, 0x0)
         self.assertEqual(data, expected_data)
 
     def test_write_request_ipv4(self):

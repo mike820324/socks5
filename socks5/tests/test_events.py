@@ -7,7 +7,6 @@ from socks5.events import (
     NeedMoreData,
     Socks4Request, Socks4Response,
     GreetingRequest, GreetingResponse,
-    UsernamePasswordAuthRequest, UsernamePasswordAuthResponse,
     Request, Response)
 
 from socks5.define import (
@@ -83,38 +82,6 @@ class TestEvents(unittest.TestCase):
         event = GreetingResponse(AUTH_TYPE["NO_AUTH"])
         self.assertEqual(event, "GreetingResponse")
         self.assertEqual(event.auth_type, AUTH_TYPE["NO_AUTH"])
-
-    def test_rfc1929_auth_request(self):
-        event = UsernamePasswordAuthRequest("user", "password")
-        self.assertEqual(event, "UsernamePasswordAuthRequest")
-        self.assertEqual(event.username, "user")
-        self.assertEqual(event.password, "password")
-
-    def test_rfc1929_auth_request_username_too_long(self):
-        with self.assertRaises(ValueError):
-            UsernamePasswordAuthRequest("a" * 256, "password")
-
-    def test_rfc1929_auth_request_password_too_long(self):
-        with self.assertRaises(ValueError):
-            UsernamePasswordAuthRequest("user", "a" * 256)
-
-    def test_rfc1929_auth_request_incorrect_username_type(self):
-        with self.assertRaises(ValueError):
-            UsernamePasswordAuthRequest(b"user", "a")
-
-    def test_rfc1929_auth_request_incorrect_password_type(self):
-        with self.assertRaises(ValueError):
-            UsernamePasswordAuthRequest("user", b"a")
-
-    def test_rfc1929_auth_response(self):
-        event = UsernamePasswordAuthResponse(RESP_STATUS["SUCCESS"])
-        self.assertEqual(event, "UsernamePasswordAuthResponse")
-
-        self.assertEqual(event.status, RESP_STATUS["SUCCESS"])
-
-    def test_rfc1929_auth_response_failed_unsupported_status(self):
-        with self.assertRaises(ValueError):
-            UsernamePasswordAuthResponse(0xff)
 
     def test_request(self):
         event = Request(REQ_COMMAND["CONNECT"], ADDR_TYPE["IPV4"], "127.0.0.1", 8080)
