@@ -1,20 +1,16 @@
 from setuptools import setup, find_packages
-from codecs import open
-import os
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
-
-with open(os.path.join(here, './requirements.txt')) as f:
-    deps = [dep for dep in f.read().split("\n") if dep]
 
 setup(
     name="socks5",
-    version="0.2.0",
+    version="0.2.1",
     description="SOCKSv5 bring your own io library",
-    long_description=long_description,
+    long_description="""
+Socks5 bring your own io library, inspired by h11 and hyper-h2.
+
+Source code: https://github.com/mike820324/socks5
+
+Documentation: https://github.com/mike820324/socks5/blob/master/README.md
+    """,
     url="https://github.com/mike820324/socks5",
     author="MicroMike",
     author_email="mike820324@gmail.com",
@@ -39,5 +35,9 @@ setup(
         "socks5", "socks5.*",
     ]),
     include_package_data=True,
-    install_requires=deps,
+    install_requires=[
+        "ipaddress==1.0.16",
+        "transitions==0.4.1",
+        "construct==2.8.8"
+    ]
 )
