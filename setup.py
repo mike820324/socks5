@@ -17,6 +17,7 @@ Documentation: https://github.com/mike820324/socks5/blob/master/README.md
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Operating System :: POSIX",
         "Operating System :: MacOS",
@@ -26,6 +27,8 @@ Documentation: https://github.com/mike820324/socks5/blob/master/README.md
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Topic :: Internet",
         "Topic :: System :: Networking",
