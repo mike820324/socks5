@@ -19,10 +19,12 @@ Currently, socks5 module support the following protocol and rfc.
 
 ## Installation:
 
-Since we have not upload to pypi yet.
-
 ```bash
 pip install socks5
+
+# follow the latest version
+git clone https://github.com/mike820324/socks5
+cd socks5 && pip install -U .
 ```
 
 ## Quick Guide:
