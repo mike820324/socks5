@@ -66,7 +66,7 @@ class TestEvents(unittest.TestCase):
 
     def test_socks4_response_unsupported_addr_format(self):
         with self.assertRaises(ValueError):
-            Socks4Response(0xff, "127.0.0.1.1", 5580)
+            Socks4Response(0x5a, "127.0.0.1.1", 5580)
 
     def test_greeting_request(self):
         event = GreetingRequest([AUTH_TYPE["NO_AUTH"]])
