@@ -23,6 +23,11 @@ class _ClientConnection(object):
         self._buffer = b""
         self.machine = Machine(
             model=self, states=self.states, initial='init')
+        self._version = 0xff
+        self._auth_methods = [AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]]
+        self._addr_type = 0xff
+        self._addr = 0
+        self._port = 0
 
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
@@ -47,6 +52,9 @@ class _ClientConnection(object):
 
         if self.state == 'greeting_response':
             if current_event == "GreetingResponse":
+                if self._version != 5 or current_event.auth_type not in self._auth_methods:
+                    raise ProtocolError("ClientConnection:recv: receive incorrect data from server")
+
                 if current_event.auth_type == AUTH_TYPE["NO_AUTH"]:
                     self.machine.set_state('request')
                 elif current_event.auth_type == AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]:
@@ -55,9 +63,17 @@ class _ClientConnection(object):
                     self.machine.set_state('auth_inprogress')
 
             elif current_event == "Socks4Response":
+                if self._version != 4 or self._port != current_event.port:
+                    raise ProtocolError("ClientConnection:recv: receive incorrect data from server")
+
                 self.machine.set_state("end")
 
         elif self.state == 'response':
+            if (self._version != 5 or
+               self._addr_type != current_event.atyp or
+               self._addr != current_event.addr or
+               self._port != current_event.port):
+                    raise ProtocolError("ClientConnection:recv: receive incorrect data from server")
             self.machine.set_state('end')
 
         return current_event
@@ -74,9 +90,18 @@ class _ClientConnection(object):
 
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_request":
+            if event == "GreetingRequest":
+                self._version = 5
+                self._auth_methods.extend(event.methods)
+            elif event == "Socks4Request":
+                self._version = 4
+                self._port = event.port
             self.machine.set_state("greeting_response")
 
         if self.state == "request":
+            self._addr_type = event.atyp
+            self._addr = event.addr
+            self._port = event.port
             self.machine.set_state("response")
 
         return _writer(event)
@@ -97,6 +122,12 @@ class _ServerConnection(object):
         self._buffer = b""
         self.machine = Machine(
             model=self, states=self.states, initial='init')
+
+        self._version = 0xff
+        self._auth_methods = [AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]]
+        self._addr_type = 0xff
+        self._addr = 0
+        self._port = 0
 
     def initiate_connection(self):
         self.machine.set_state("greeting_request")
@@ -120,9 +151,21 @@ class _ServerConnection(object):
             self._buffer = b""
 
         if self.state == 'greeting_request':
+            if current_event == "GreetingRequest":
+                self._version = 5
+                self._auth_methods.extend(current_event.methods)
+            elif current_event == "Socks4Request":
+                self._version = 4
+                self._port = current_event.port
+
             self.machine.set_state('greeting_response')
 
         elif self.state == 'request':
+            if current_event == "Request":
+                self._addr_type = current_event.atyp
+                self._addr = current_event.addr
+                self._port = current_event.port
+
             self.machine.set_state('response')
 
         self._buffer = b""
@@ -141,6 +184,10 @@ class _ServerConnection(object):
         _writer = getattr(writer, "write_" + self.state)
         if self.state == "greeting_response":
             if event == "GreetingResponse":
+                if (self._version != 5 or
+                   event.auth_type not in self._auth_methods):
+                    raise ProtocolError("ServerConnection.send: incorrect event from user.")
+
                 if event.auth_type == AUTH_TYPE["NO_AUTH"]:
                     self.machine.set_state("request")
                 elif event.auth_type == AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"]:
@@ -149,9 +196,17 @@ class _ServerConnection(object):
                     self.machine.set_state("auth_inprogress")
 
             elif event == "Socks4Response":
+                if self._version != 4 or self._port != event.port:
+                    raise ProtocolError("ServerConnection.send: incorrect event from user")
+
                 self.machine.set_state("end")
 
         if self.state == "response":
+            if (self._version != 5 or
+               self._addr_type != event.atyp or
+               self._addr != event.addr or
+               self._port != event.port):
+                    raise ProtocolError("ServerConnection.send: receive incorrect data from server")
             self.machine.set_state("end")
         return _writer(event)
 
