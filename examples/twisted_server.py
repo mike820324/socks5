@@ -135,10 +135,13 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         """
         self._remotePeer = protocol
         # Let the client know that we were successfully connected.
+        # Client will want the address name under the same format as
+        # requested.
+        # `address.host` will be an IP address so we can't use it.
         response = socks5.Response(
             socks5.RESP_STATUS['SUCCESS'],
-            1,  # Only IPV4 is supported.
-            ipaddress.IPv4Address(address.host.decode('ascii')),
+            self._addressType,
+            self._addressName,
             address.port,
             )
         self._sendResponse(response)
@@ -266,7 +269,7 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         Called when the client requested an authentication method which
         we don't support.
         """
-        log.mgs(
+        log.msg(
             'Requested auth methods are not supported %s.' % (event.methods))
         response = socks5.GreetingResponse(
             socks5.AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"])
@@ -277,10 +280,17 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         """
         Called when the client request to connect to a remote peer.
         """
-        if event.atyp != 1:
-            return _failGeneral(details='Only IPV4 is supported.', event=event)
+        # See RFC. 1 is plain IP, 3 is FQDN.
+        if event.atyp != [1, 3]:
+            return self._failGeneral(
+                details='Address type not supported.', event=event)
 
         self._state = STATE.CONNECTING
+
+        # Keep a record of what was requested for connect.
+        self._addressType = event.atyp
+        self._addressName = event.addr
+
         log.msg('Initiating connection to (%s) %s:%s' % (
             event.atyp, event.addr, event.port))
         # Pause any data from client while we are connecting.
@@ -303,11 +313,12 @@ class SOCKS5Server(Protocol, TimeoutMixin):
             self._failGeneral(
                 details='Fail to connect to remote peer.', event=event)
 
-        # Only TCP4 is supported.
-        # `event.atyp` contains the protocol.
         self._remoteEndpoint = TCP4ClientEndpoint(
             reactor,
-            host=str(event.addr),
+            # event.addr can be a string or an ipaddress object.
+            # This is why we do all the conversions.
+            # And Twisted wants bytes, while socks5 lib wants Unicode.
+            host=str(self._addressName).encode('ascii'),
             port=event.port,
             timeout=self._TIMEOUT,
             )
@@ -334,7 +345,7 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         # https://github.com/mike820324/socks5/issues/17
         response = socks5.Response(
             socks5.RESP_STATUS['GENRAL_FAILURE'],
-            1,
+            self._addressType,
             host,
             port,
             )
