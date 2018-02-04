@@ -39,9 +39,30 @@ from twisted.protocols.policies import TimeoutMixin
 from twisted.python import log
 
 import socks5
+from socks5.auth import rfc1929
+
+# Credentials which are accepted by the server.
+ACCEPTED_USERNAME = 'test'
+ACCEPTED_PASSWORD = 'pass'
 
 # Don't know why socks5 doesn't have this as constant.
 SOCKS5_NEED_MORE = 'NeedMoreData'
+
+
+class STATE(object):
+    """
+    The states of the server.
+    """
+    # Initial state before the first message is exchanged with the client.
+    INITIALIZING = 'Initializing'
+    # While we are waiting for credentials from the client.
+    AUTHENTICATING = 'Authenticating'
+    # Client was successfully authenticated.
+    AUTHENTICATED = 'Authenticated'
+    # While we are connecting to the remote peer.
+    CONNECTING = 'Connecting'
+    # Once we are connected to the remote peer.
+    CONNECTED = 'Connected'
 
 
 class _PeerConnection(Protocol):
@@ -91,12 +112,20 @@ class SOCKS5Server(Protocol, TimeoutMixin):
     _TIMEOUT = 60
 
     def __init__(self):
-        self._state = 'init'
+        self._state = STATE.INITIALIZING
         # Connection to the remote peer.
         self._remotePeer = None
-        self._socksConnection = socks5.Connection(our_role="server")
+        # Due to the API design, for authenticated request we need to
+        # switch back and forth between different connection types.
+        self._mainConnection = socks5.Connection(our_role="server")
+        self._authConnection = rfc1929.Connection(our_role="server")
+        # Start with the main connection.
+        self._socksConnection = self._mainConnection
 
     def connectionMade(self):
+        """
+        Called when the client connects to us.
+        """
         self.setTimeout(self._TIMEOUT)
         self._socksConnection.initiate_connection()
 
@@ -141,7 +170,7 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         """
         self.resetTimeout()
 
-        if self._state == 'connected':
+        if self._state == STATE.CONNECTED:
             # We are already connected so we just forward the data from the
             # client to the remote peer.
             self._remotePeer.write(data)
@@ -153,16 +182,25 @@ class SOCKS5Server(Protocol, TimeoutMixin):
             # Not ready to enter any other state now.
             return
 
-        if self._state == 'init':
-            # Here we should do something based on the event which should
-            # inform what auth methods are supported by the client.
-            # No authentication is supported yet, so nothing to do here.
-            self._greetNoAuth()
-            return
+        if self._state == STATE.INITIALIZING:
+            if not isinstance(event, socks5.GreetingRequest):
+                return self._failGeneral('Was waiting for a greeting request.')
 
-        if self._state == 'authenticated':
-            self._connect(event)
-            return
+            return self._onAuthRequest(event)
+
+        if self._state == STATE.AUTHENTICATING:
+            if not isinstance(event, rfc1929.AuthRequest):
+                return self._failGeneral('Was waiting for an auth request.')
+
+            return self._onAuthReceived(event)
+
+        if self._state == STATE.AUTHENTICATED:
+            if not isinstance(event, socks5.Request):
+                return self._failGeneral('Was waiting for a connect request.')
+
+            return self._onConnectRequest(event)
+
+        self._failGeneral('Request received out of order.')
 
     def peerDataReceived(self, data):
         """
@@ -172,23 +210,77 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         # Just forward the data as the client.
         self.transport.write(data)
 
-    def _greetNoAuth(self):
+    def _onAuthRequest(self, event):
         """
-        Called after initial connection to inform that we 
+        Called when we got an authentication request.
         """
-        # We are already authenticated for anon requests.
-        self._state = 'authenticated'
-        response = socks5.GreetingResponse(socks5.AUTH_TYPE["NO_AUTH"])
-        self._sendResponse(response)
+        if socks5.AUTH_TYPE["USERNAME_PASSWD"] in event.methods:
+            # We are already authenticated for anon requests.
+            self._state = STATE.AUTHENTICATING
+            response = socks5.GreetingResponse(
+                socks5.AUTH_TYPE["USERNAME_PASSWD"])
+            self._sendResponse(response)
 
-    def _connect(self, event):
+            # Switch to AUTH protocol.
+            self._socksConnection = self._authConnection
+            self._socksConnection.initiate_connection()
+
+        elif socks5.AUTH_TYPE["NO_AUTH"] in event.methods:
+            # We are already authenticated for anon requests.
+            self._state = STATE.AUTHENTICATED
+            response = socks5.GreetingResponse(socks5.AUTH_TYPE["NO_AUTH"])
+            return self._sendResponse(response)
+        else:
+            # At this point, there is no match between the auth methods
+            # supported by the client and the server.
+            return self._failAuthNotSupported(event)
+
+    def _onAuthReceived(self, event):
         """
-        Connect the the remote peer as requested by the socks client.
+        Called when we got the authentication details from the client.
+        """
+        if (
+            event.username == ACCEPTED_USERNAME and
+            event.password == ACCEPTED_PASSWORD
+                ):
+            # Credentials are valid.
+            self._state = STATE.AUTHENTICATED
+            status = socks5.RESP_STATUS["SUCCESS"]
+            response = rfc1929.AuthResponse(status)
+            self._sendResponse(response)
+            # Switch back to main protocol.
+            self._socksConnection = self._mainConnection
+            self._socksConnection.auth_end()
+            return
+        else:
+            log.msg('AUTH rejected for %s:%s' % (
+                event.username, event.password))
+            status = socks5.RESP_STATUS["GENRAL_FAILURE"]
+            response = rfc1929.AuthResponse(status)
+            self._sendResponse(response)
+            # The connection should be closed when authentication fails.
+            self.transport.loseConnection()
+
+    def _failAuthNotSupported(self, event):
+        """
+        Called when the client requested an authentication method which
+        we don't support.
+        """
+        log.mgs(
+            'Requested auth methods are not supported %s.' % (event.methods))
+        response = socks5.GreetingResponse(
+            socks5.AUTH_TYPE["NO_SUPPORT_AUTH_METHOD"])
+        self._sendResponse(response)
+        self.transport.loseConnection()
+
+    def _onConnectRequest(self, event):
+        """
+        Called when the client request to connect to a remote peer.
         """
         if event.atyp != 1:
-            raise RuntimeError('Only IPV4 is supported')
+            return _failGeneral(details='Only IPV4 is supported.', event=event)
 
-        self._state = 'connecting'
+        self._state = STATE.CONNECTING
         log.msg('Initiating connection to (%s) %s:%s' % (
             event.atyp, event.addr, event.port))
         # Pause any data from client while we are connecting.
@@ -199,7 +291,7 @@ class SOCKS5Server(Protocol, TimeoutMixin):
             Called when we are connected to the remote peer as requested
             by the socks client.
             """
-            self._state = 'connected'
+            self._state = STATE.CONNECTED
             # Ready to receive data from the client.
             self.transport.startReading()
 
@@ -208,17 +300,8 @@ class SOCKS5Server(Protocol, TimeoutMixin):
             Called when we fail to connect to the peer.
             """
             log.msg(failure)
-            # FIXME: I am not sure how to respond to a failure
-            # and if there is a type here.
-            # https://github.com/mike820324/socks5/issues/17
-            response = socks5.Response(
-                socks5.RESP_STATUS['GENRAL_FAILURE'],
-                event.atyp,
-                event.addr,
-                event.port,
-                )
-            self._sendResponse(response)
-            self.transport.loseConnection()
+            self._failGeneral(
+                details='Fail to connect to remote peer.', event=event)
 
         # Only TCP4 is supported.
         # `event.atyp` contains the protocol.
@@ -232,6 +315,31 @@ class SOCKS5Server(Protocol, TimeoutMixin):
 
         deferred.addCallback(cb_peer_connected)
         deferred.addErrback(eb_peer_connected)
+
+    def _failGeneral(self, details, event=None):
+        """
+        Called when we got a critical failure and client connection
+        can't continue.
+        """
+        log.msg(details)
+        if event:
+            host = event.addr
+            port = event.port
+        else:
+            host = ipaddress.IPv4Address('0.0.0.0')
+            port = 0
+
+        # FIXME: I am not sure how to respond to a failure
+        # and if there is a type here.
+        # https://github.com/mike820324/socks5/issues/17
+        response = socks5.Response(
+            socks5.RESP_STATUS['GENRAL_FAILURE'],
+            1,
+            host,
+            port,
+            )
+        self._sendResponse(response)
+        self.transport.loseConnection()
 
 
 if __name__ == '__main__':
