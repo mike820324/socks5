@@ -156,6 +156,7 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         """
         Connection lost to the client.
         """
+        self.setTimeout(None)
         log.msg(reason)
         if self._remotePeer:
             self._remotePeer.loseConnection()
@@ -280,7 +281,10 @@ class SOCKS5Server(Protocol, TimeoutMixin):
         """
         Called when the client request to connect to a remote peer.
         """
-        # See RFC. 1 is plain IP, 3 is FQDN.
+        # See RFC.
+        # * 1 is plain IP already resolved by the client.
+        # * 3 is IP(can be IPV6) or FQDN which needs to be resolved by the
+        #   SOCKS server.
         if event.atyp != [1, 3]:
             return self._failGeneral(
                 details='Address type not supported.', event=event)
