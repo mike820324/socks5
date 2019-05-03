@@ -62,7 +62,7 @@ from socks5 import GreetingRequest, GreetingResponse
 from socks5 import AUTH_TYPE
 
 client_event = GreetingRequest([AUTH_TYPE["NO_AUTH"]])
-raw_data = client_conn.send(event)
+raw_data = client_conn.send(client_event)
 
 _event = server_conn.recv(raw_data)
 if AUTH_TYPE["NO_AUTH"] in server_event.auth_type:
@@ -164,7 +164,7 @@ The following are the methods within this class:
 ### Events:
 
 An event abstract the socks protocol related data away from the user.
-Every socks 5 communication data is an event object in socks5. 
+Every socks 5 communication data is an event object in socks5.
 Currently, there are three events categories which are, **socks4**, **socks5** and **rfc 1929**.
 
 #### Socks4 Events:
