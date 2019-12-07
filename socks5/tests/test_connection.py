@@ -459,18 +459,6 @@ class TestClientConnection(unittest.TestCase):
         self.assertEqual(event.addr, ipaddress.IPv4Address("127.0.0.1"))
         self.assertEqual(event.port, 8080)
 
-    def test_recv_in_response_with_incorrect_addr(self):
-        conn = Connection(our_role="client")
-        conn._conn.machine.set_state("response")
-        conn._conn._version = 5
-        conn._conn._addr_type = ADDR_TYPE["IPV4"]
-        conn._conn._addr = ipaddress.IPv4Address("127.0.0.1")
-        conn._conn._port = 8080
-
-        raw_data = struct.pack("!BBxB4BH", 0x5, 0x0, 0x1, 127, 0, 0, 2, 8080)
-        with self.assertRaises(ProtocolError):
-            conn.recv(raw_data)
-
     def test_recv_incorrect_state_greeting_request(self):
         conn = Connection(our_role="client")
         conn._conn.machine.set_state("greeting_request")
