@@ -69,10 +69,7 @@ class _ClientConnection(object):
                 self.machine.set_state("end")
 
         elif self.state == 'response':
-            if (self._version != 5 or
-               self._addr_type != current_event.atyp or
-               self._addr != current_event.addr or
-               self._port != current_event.port):
+            if (self._version != 5):
                     raise ProtocolError("ClientConnection:recv: receive incorrect data from server")
             self.machine.set_state('end')
 
